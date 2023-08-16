@@ -1,0 +1,5 @@
+package wipeout
+
+func main() {
+
+}
