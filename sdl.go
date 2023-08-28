@@ -6,9 +6,7 @@ import (
 )
 
 var (
-	GlContext  sdl.GLContext
-	Gamepad    *sdl.GameController
-	WantToExit bool = false
+	GlContext sdl.GLContext
 )
 
 var GamepadMap = map[sdl.GameControllerButton]Button{
@@ -41,31 +39,31 @@ var GamepadAxisMap = map[sdl.GameControllerAxis]Button{
 }
 
 // Exit() exits the game
-func Exit() {
-	WantToExit = true
+func (sw *PlatformSdl) Exit() {
+	sw.wantToExit = true
 }
 
-type SdlWindow struct {
-	window *sdl.Window
+type PlatformSdl struct {
+	window     *sdl.Window
+	gamepad    *sdl.GameController
+	wantToExit bool
 }
 
 // FindGamepad returns the first gamepad found
-func FindGamepad() *sdl.GameController {
+func (sw *PlatformSdl) FindGamepad() {
 	for i := 0; i < sdl.NumJoysticks(); i++ {
 		if sdl.IsGameController(i) {
-			return sdl.GameControllerOpen(i)
+			sw.gamepad = sdl.GameControllerOpen(i)
 		}
 	}
-
-	return nil
 }
 
 // PumpEvents pumps events from SDL
-func (sw *SdlWindow) PumpEvents() {
+func (sw *PlatformSdl) PumpEvents() {
 	var event sdl.Event
 
 	// Keyboards inputs
-	for !WantToExit {
+	for !sw.wantToExit && sdl.PollEvent() != nil {
 		event = sdl.PollEvent()
 
 		// Handle Fullscreen with F11
@@ -91,11 +89,11 @@ func (sw *SdlWindow) PumpEvents() {
 
 			// Gamepad connected/disconnected
 		} else if event.GetType() == sdl.CONTROLLERDEVICEADDED {
-			Gamepad = sdl.GameControllerOpen(int(event.(*sdl.ControllerDeviceEvent).Which))
+			sw.gamepad = sdl.GameControllerOpen(int(event.(*sdl.ControllerDeviceEvent).Which))
 		} else if event.GetType() == sdl.CONTROLLERDEVICEREMOVED {
-			if Gamepad != nil && event.(*sdl.ControllerDeviceEvent).Which == Gamepad.Joystick().InstanceID() {
-				Gamepad.Close()
-				Gamepad = nil
+			if sw.gamepad != nil && event.(*sdl.ControllerDeviceEvent).Which == sw.gamepad.Joystick().InstanceID() {
+				sw.gamepad.Close()
+				sw.gamepad = nil
 			}
 			// Input Gamepad buttons
 		} else if event.GetType() == sdl.CONTROLLERBUTTONDOWN || event.GetType() == sdl.CONTROLLERBUTTONUP {
@@ -128,8 +126,8 @@ func (sw *SdlWindow) PumpEvents() {
 	}
 }
 
-// NewWindow creates a window
-func NewWindow(title string, x, y, w, h int32) (*SdlWindow, error) {
+// NewPlatformSdl creates a window
+func NewPlatformSdl(title string, x, y, w, h int32) (*PlatformSdl, error) {
 
 	window, err := sdl.CreateWindow("Wipeout",
 		sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED,
@@ -143,20 +141,20 @@ func NewWindow(title string, x, y, w, h int32) (*SdlWindow, error) {
 
 	gl.Enable(gl.DEPTH_TEST)
 
-	return &SdlWindow{
+	return &PlatformSdl{
 		window: window,
 	}, nil
 
 }
 
 // ScreenSize returns the size of the screen
-func (sw *SdlWindow) ScreenSize() Vec2i {
+func (sw *PlatformSdl) ScreenSize() Vec2i {
 	w, h := sw.window.GLGetDrawableSize()
 	return Vec2i{w, h}
 }
 
 // SetFullscreen sets the window to fullscreen mode
-func (sw *SdlWindow) SetFullscreen(fullscreen bool) error {
+func (sw *PlatformSdl) SetFullscreen(fullscreen bool) error {
 	if fullscreen {
 
 		display, err := sw.window.GetDisplayIndex()
@@ -179,11 +177,11 @@ func (sw *SdlWindow) SetFullscreen(fullscreen bool) error {
 }
 
 // IsFullScreen returns true if the window is in fullscreen mode
-func (sw *SdlWindow) IsFullScreen() bool {
+func (sw *PlatformSdl) IsFullScreen() bool {
 	return sw.window.GetFlags()&sdl.WINDOW_FULLSCREEN != 0
 }
 
-func (sw *SdlWindow) VideoInit() {
+func (sw *PlatformSdl) VideoInit() {
 	sdl.GLSetAttribute(sdl.GL_CONTEXT_PROFILE_MASK, sdl.GL_CONTEXT_PROFILE_ES)
 	sdl.GLSetAttribute(sdl.GL_CONTEXT_MAJOR_VERSION, 2)
 	sdl.GLSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 1)
@@ -195,14 +193,14 @@ func (sw *SdlWindow) VideoInit() {
 	sdl.GLSetSwapInterval(1)
 }
 
-func (sw *SdlWindow) VideoCleanup() {
+func (sw *PlatformSdl) VideoCleanup() {
 	sdl.GLDeleteContext(GlContext)
 }
 
-func (sw *SdlWindow) EndFrame() {
+func (sw *PlatformSdl) EndFrame() {
 	sw.window.GLSwap()
 }
 
-func (sw *SdlWindow) Destroy() {
+func (sw *PlatformSdl) Destroy() {
 	sw.window.Destroy()
 }

@@ -11,23 +11,22 @@ func main() {
 	}
 	defer sdl.Quit()
 
-	wipeout.Gamepad = wipeout.FindGamepad()
-
 	var err error
-	window, err := wipeout.NewWindow("Wipeout", 0, 0, 800, 600)
+	platform, err := wipeout.NewPlatformSdl("Wipeout", 0, 0, 800, 600)
 	if err != nil {
 		panic(err)
 	}
-	defer window.Destroy()
+	defer platform.Destroy()
 
-	window.VideoInit()
+	platform.FindGamepad()
+	platform.VideoInit()
 
 	running := true
 	for running {
-		wipeout.PumpEvents()
-		window.EndFrame()
+		platform.PumpEvents()
+		platform.EndFrame()
 	}
 
-	window.VideoCleanup()
+	platform.VideoCleanup()
 
 }
