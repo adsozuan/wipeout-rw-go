@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/adsozuan/wipeout-rw-go"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -10,35 +11,23 @@ func main() {
 	}
 	defer sdl.Quit()
 
-	window, err := sdl.CreateWindow("test", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED,
-		800, 600, sdl.WINDOW_SHOWN)
+	wipeout.Gamepad = wipeout.FindGamepad()
+
+	var err error
+	window, err := wipeout.NewWindow("Wipeout", 0, 0, 800, 600)
 	if err != nil {
 		panic(err)
 	}
 	defer window.Destroy()
 
-	surface, err := window.GetSurface()
-	if err != nil {
-		panic(err)
-	}
-	surface.FillRect(nil, 0)
-
-	rect := sdl.Rect{0, 0, 200, 200}
-	colour := sdl.Color{R: 255, G: 0, B: 255, A: 255} // purple
-	pixel := sdl.MapRGBA(surface.Format, colour.R, colour.G, colour.B, colour.A)
-	surface.FillRect(&rect, pixel)
-	window.UpdateSurface()
+	window.VideoInit()
 
 	running := true
 	for running {
-		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
-			switch event.(type) {
-			case *sdl.QuitEvent:
-				println("Quit")
-				running = false
-				break
-			}
-		}
+		wipeout.PumpEvents()
+		window.EndFrame()
 	}
+
+	window.VideoCleanup()
 
 }
