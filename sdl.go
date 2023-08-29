@@ -60,6 +60,7 @@ func (sw *PlatformSdl) ExitWanted() bool {
 type PlatformSdl struct {
 	window     *sdl.Window
 	gamepad    *sdl.GameController
+	perfFreq   uint64
 	wantToExit bool
 }
 
@@ -80,9 +81,16 @@ func NewPlatformSdl(title string, x, y, w, h int32) (*PlatformSdl, error) {
 
 	return &PlatformSdl{
 		window:     window,
+		perfFreq:   sdl.GetPerformanceFrequency(),
 		wantToExit: false,
 	}, nil
 
+}
+
+func (sw *PlatformSdl) Now() float64 {
+	perfCounter := sdl.GetPerformanceCounter()
+
+	return float64(perfCounter) / float64(sw.perfFreq)
 }
 
 // FindGamepad returns the first gamepad found
