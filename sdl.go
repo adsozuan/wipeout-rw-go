@@ -1,12 +1,16 @@
 package wipeout
 
 import (
-	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/veandco/go-sdl2/sdl"
+)
+
+const (
+	PLATFORM_WINDOW_FLAGS = 0
 )
 
 var (
 	GlContext sdl.GLContext
+	Renderer  *sdl.Renderer
 )
 
 var GamepadMap = map[sdl.GameControllerButton]Button{
@@ -43,10 +47,37 @@ func (sw *PlatformSdl) Exit() {
 	sw.wantToExit = true
 }
 
+// ExitWanted() returns true if the user wants to exit the game
+func (sw *PlatformSdl) ExitWanted() bool {
+	return sw.wantToExit
+}
+
 type PlatformSdl struct {
 	window     *sdl.Window
 	gamepad    *sdl.GameController
 	wantToExit bool
+}
+
+// NewPlatformSdl creates a window
+func NewPlatformSdl(title string, x, y, w, h int32) (*PlatformSdl, error) {
+
+	window, err := sdl.CreateWindow("Wipeout",
+		sdl.WINDOWPOS_CENTERED, sdl.WINDOWPOS_CENTERED,
+		800, 600, sdl.WINDOW_SHOWN|PLATFORM_WINDOW_FLAGS)
+	if err != nil {
+		return nil, err
+	}
+	// if err = gl.Init(); err != nil {
+	// 	panic(err)
+	// }
+
+	// gl.Enable(gl.DEPTH_TEST)
+
+	return &PlatformSdl{
+		window:     window,
+		wantToExit: false,
+	}, nil
+
 }
 
 // FindGamepad returns the first gamepad found
@@ -60,11 +91,9 @@ func (sw *PlatformSdl) FindGamepad() {
 
 // PumpEvents pumps events from SDL
 func (sw *PlatformSdl) PumpEvents() {
-	var event sdl.Event
 
 	// Keyboards inputs
-	for !sw.wantToExit && sdl.PollEvent() != nil {
-		event = sdl.PollEvent()
+	for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
 
 		// Handle Fullscreen with F11
 		if event.GetType() == sdl.KEYDOWN && event.(*sdl.KeyboardEvent).Keysym.Scancode == sdl.SCANCODE_F11 {
@@ -122,29 +151,10 @@ func (sw *PlatformSdl) PumpEvents() {
 					InputSetButtonState(code+1, 0.0)
 				}
 			}
+		} else if event.GetType() == sdl.QUIT {
+			sw.wantToExit = true
 		}
 	}
-}
-
-// NewPlatformSdl creates a window
-func NewPlatformSdl(title string, x, y, w, h int32) (*PlatformSdl, error) {
-
-	window, err := sdl.CreateWindow("Wipeout",
-		sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED,
-		800, 600, sdl.WINDOW_OPENGL)
-	if err != nil {
-		panic(err)
-	}
-	if err = gl.Init(); err != nil {
-		panic(err)
-	}
-
-	gl.Enable(gl.DEPTH_TEST)
-
-	return &PlatformSdl{
-		window: window,
-	}, nil
-
 }
 
 // ScreenSize returns the size of the screen
@@ -181,16 +191,24 @@ func (sw *PlatformSdl) IsFullScreen() bool {
 	return sw.window.GetFlags()&sdl.WINDOW_FULLSCREEN != 0
 }
 
-func (sw *PlatformSdl) VideoInit() {
-	sdl.GLSetAttribute(sdl.GL_CONTEXT_PROFILE_MASK, sdl.GL_CONTEXT_PROFILE_ES)
-	sdl.GLSetAttribute(sdl.GL_CONTEXT_MAJOR_VERSION, 2)
-	sdl.GLSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 1)
+func (sw *PlatformSdl) VideoInit() error {
 	var err error
-	GlContext, err = sw.window.GLCreateContext()
+	// sdl.GLSetAttribute(sdl.GL_CONTEXT_PROFILE_MASK, sdl.GL_CONTEXT_PROFILE_ES)
+	// sdl.GLSetAttribute(sdl.GL_CONTEXT_MAJOR_VERSION, 2)
+	// sdl.GLSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 1)
+	// GlContext, err = sw.window.GLCreateContext()
+	// if err != nil {
+	// 	return err
+	// }
+	// sdl.GLSetSwapInterval(1)
+	// return nil
+	Renderer, err = sdl.CreateRenderer(sw.window, -1, sdl.RENDERER_ACCELERATED)
 	if err != nil {
-		panic(err)
+		return err
 	}
-	sdl.GLSetSwapInterval(1)
+
+	return nil
+
 }
 
 func (sw *PlatformSdl) VideoCleanup() {
@@ -201,6 +219,6 @@ func (sw *PlatformSdl) EndFrame() {
 	sw.window.GLSwap()
 }
 
-func (sw *PlatformSdl) Destroy() {
-	sw.window.Destroy()
+func (sw *PlatformSdl) Destroy() error {
+	return sw.window.Destroy()
 }
