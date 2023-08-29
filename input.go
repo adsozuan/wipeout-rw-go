@@ -342,6 +342,9 @@ func InputTextInput(asciiChar int32) {
 	}
 }
 
+func InputCleanUp() {
+}
+
 func InputClear() {
 	clearBoolSlice(&ActionsPressed)
 	clearBoolSlice(&ActionsReleased)

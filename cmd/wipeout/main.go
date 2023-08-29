@@ -34,9 +34,12 @@ func run() error {
 		return err
 	}
 
+	system := wipeout.NewSystem(platform)
+
 	for !platform.ExitWanted() {
 		platform.PumpEvents()
 		platform.PrepareFrame()
+		system.Update()
 		platform.EndFrame()
 	}
 
