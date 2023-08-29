@@ -9,8 +9,13 @@ const (
 )
 
 var (
-	GlContext sdl.GLContext
-	Renderer  *sdl.Renderer
+	GlContext          sdl.GLContext
+	Renderer           *sdl.Renderer
+	ScreenBuffer       *sdl.Texture
+	ScreenBufferPixels *sdl.Rect
+	ScreenBufferPitch  int32
+	ScreenBufferSize   Vec2i = Vec2i{0, 0}
+	ScreenSize         Vec2i = Vec2i{0, 0}
 )
 
 var GamepadMap = map[sdl.GameControllerButton]Button{
@@ -215,8 +220,31 @@ func (sw *PlatformSdl) VideoCleanup() {
 	sdl.GLDeleteContext(GlContext)
 }
 
+func (sw *PlatformSdl) PrepareFrame() {
+	if ScreenBufferSize.X != ScreenSize.X || ScreenBufferSize.Y != ScreenSize.Y {
+		if ScreenBuffer != nil {
+			ScreenBuffer.Destroy()
+		}
+		ScreenBuffer, _ = Renderer.CreateTexture(sdl.PIXELFORMAT_ABGR8888, sdl.TEXTUREACCESS_STREAMING, ScreenSize.X, ScreenSize.Y)
+		ScreenBufferSize = ScreenSize
+	}
+	ScreenBuffer.Lock(ScreenBufferPixels)
+}
+
 func (sw *PlatformSdl) EndFrame() {
-	sw.window.GLSwap()
+	ScreenBufferPixels = nil
+	ScreenBuffer.Unlock()
+	Renderer.Copy(ScreenBuffer, nil, nil)
+	Renderer.Present()
+}
+
+func (sw *PlatformSdl) GetScreenBuffer() *sdl.Rect {
+	return ScreenBufferPixels
+}
+
+func (sw *PlatformSdl) GetScreenSize() Vec2i {
+	ScreenSize.X, ScreenSize.Y = sw.window.GetSize()
+	return ScreenSize
 }
 
 func (sw *PlatformSdl) Destroy() error {

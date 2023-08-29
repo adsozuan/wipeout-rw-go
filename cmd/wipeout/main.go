@@ -36,6 +36,7 @@ func run() error {
 
 	for !platform.ExitWanted() {
 		platform.PumpEvents()
+		platform.PrepareFrame()
 		platform.EndFrame()
 	}
 
