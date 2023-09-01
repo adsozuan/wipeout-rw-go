@@ -322,7 +322,7 @@ func InputInit() {
 }
 
 func InputMousePos() Vec2 {
-	return Vec2{X: float64(MouseX), Y: float64(MouseY)}
+	return Vec2{X: float32(MouseX), Y: float32(MouseY)}
 }
 
 func InputSetMousePos(x, y int32) {

@@ -2,6 +2,7 @@ package wipeout
 
 import "math"
 
+// System is the main system of the game
 type System struct {
 	timeReal   float64
 	timeScaled float64
