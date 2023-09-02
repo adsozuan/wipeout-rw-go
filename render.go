@@ -109,7 +109,7 @@ func NewRender() *Render {
 	return r
 }
 
-func (r *Render) Init() {
+func (r *Render) Init(screenSize Vec2i) {
 	gl.GenTextures(gl.TEXTURE_2D, &r.atlasTexture)
 	gl.BindTexture(gl.TEXTURE_2D, r.atlasTexture)
 	if RenderUseMipMaps {
@@ -143,12 +143,108 @@ func (r *Render) Init() {
 	gl.UseProgram(prgGame.program)
 	gl.BindVertexArray(prgGame.vao)
 
+	r.SetView(Vec3{0, 0, 0}, Vec3{0, 0, 0})
+	m := NewMat4Identity()
+	r.SetModelMat(&m)
+
+	gl.Enable(gl.CULL_FACE)
+	gl.Enable(gl.BLEND)
+	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+
+	// Create default white texture
+	white := []RGBA{
+		RGBA{128, 128, 128, 255}, RGBA{128, 128, 128, 255},
+		RGBA{128, 128, 128, 255}, RGBA{128, 128, 128, 255},
+	}
+	t, err := r.TextureCreate(2, 2, white)
+	if err != nil {
+		panic(err)
+	}
+	r.renderNoTexture = uint16(t)
+
+	// Back buffer
+	r.renderResolution = RenderResolutionNative
+	r.SetScreenSize(screenSize)
 }
 
 func (r *Render) Cleanup() {
 	// TODO see if this is needed
 	// gl.DeleteTextures(1, &r.atlasTexture)
 	// gl.DeleteBuffers(1, &r.vbo)
+}
+
+func (r *Render) SetScreenSize(size Vec2i) {
+	r.screenSize = size
+	r.projectionMatbb = r.Setup2dProjectionMat(size)
+
+	r.SetResolution(r.renderResolution)
+}
+
+func (r *Render) SetResolution(res RenderResolution) {
+	r.renderResolution = res
+
+	if res == RenderResolutionNative {
+		r.backBufferSize = r.screenSize
+	} else {
+		aspect := float32(r.screenSize.X) / float32(r.screenSize.Y)
+		if res == RenderResolution240p {
+			r.backBufferSize = Vec2i{int32(aspect * 240), 240}
+		} else if res == RenderResolution480p {
+			r.backBufferSize = Vec2i{int32(aspect * 480), 480}
+		} else {
+			panic(fmt.Sprintf("invalid resolution %d", res))
+		}
+	}
+
+	if r.backBuffer != 0 {
+		gl.GenTextures(1, &r.backBufferTexture)
+		gl.GenFramebuffers(1, &r.backBuffer)
+		gl.GenRenderbuffers(1, &r.backBufferDepthBuffer)
+	}
+
+	gl.BindTexture(gl.TEXTURE_2D, r.backBufferTexture)
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.Sizei(r.backBufferSize.X), gl.Sizei(r.backBufferSize.Y), 0, gl.RGBA, gl.UNSIGNED_BYTE, nil)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+
+	gl.BindFramebuffer(gl.FRAMEBUFFER, r.backBuffer)
+	gl.BindRenderbuffer(gl.RENDERBUFFER, r.backBufferDepthBuffer)
+	gl.FramebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, r.backBufferDepthBuffer)
+	gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, r.backBufferTexture, 0)
+
+	gl.BindTexture(gl.RENDERBUFFER, r.backBufferDepthBuffer)
+	gl.RenderbufferStorage(gl.RENDERBUFFER, RenderDepthBufferInternalFormat, gl.Sizei(r.backBufferSize.X), gl.Sizei(r.backBufferSize.Y))
+
+	r.projectionMat2d = r.Setup2dProjectionMat(r.backBufferSize)
+	r.projectionMat3d = r.Setup3dProjectionMat(r.backBufferSize)
+
+	// Use nearest filtering for 240p and 480p
+	gl.BindTexture(gl.TEXTURE_2D, r.atlasTexture)
+	if r.renderResolution == RenderResolutionNative {
+		if RenderUseMipMaps {
+			gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR)
+		} else {
+			gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+		}
+	} else {
+		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+	}
+	gl.Viewport(0, 0, gl.Sizei(r.backBufferSize.X), gl.Sizei(r.backBufferSize.Y))
+}
+
+func (r *Render) Setup3dProjectionMat(size Vec2i) Mat4 {
+	aspect := float32(size.X) / float32(size.Y)
+	fov := (73.75 / 180.0) * math.Pi
+	f := float32(1.0 / math.Tan(fov*0.5))
+	nf := float32(1.0 / (NearPlane - FarPlane))
+	return Mat4{
+		f / aspect, 0, 0, 0,
+		0, f, 0, 0,
+		0, 0, (FarPlane + NearPlane) * nf, -1,
+		0, 0, (2 * FarPlane * NearPlane) * nf, 0,
+	}
 }
 
 func (r *Render) SetPostEffect(postEffect RenderPostEffect) error {
@@ -574,4 +670,24 @@ func (r *Render) TexturesDump(path string) error {
 
 	// TODO
 	return nil
+}
+
+func (r *Render) Setup2dProjectionMat(size Vec2i) Mat4 {
+	var near float32 = -1
+	var far float32 = 1
+	var left float32 = 0
+	var right float32 = float32(size.X)
+	var top float32 = 0
+	var bottom float32 = float32(size.Y)
+
+	var lr float32 = 1.0 / (left - right)
+	var bt float32 = 1.0 / (bottom - top)
+	var nf float32 = 1.0 / (near - far)
+
+	return Mat4{
+		-2 * lr, 0, 0, 0,
+		0, -2 * bt, 0, 0,
+		0, 0, 2 * nf, 0,
+		lr * (left + right), bt * (top + bottom), nf * (far + near), 1,
+	}
 }
