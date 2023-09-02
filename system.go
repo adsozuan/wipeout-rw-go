@@ -2,6 +2,12 @@ package wipeout
 
 import "math"
 
+const (
+	SystemWindowName   = "Wipeout"
+	SystemWindowWidth  = 1280
+	SystemWindowHeight = 720
+)
+
 // System is the main system of the game
 type System struct {
 	timeReal   float64
@@ -10,10 +16,15 @@ type System struct {
 	tickLast   float64
 	cycleTime  float64
 	plaform    *PlatformSdl
+	render     *Render
 }
 
-func NewSystem(platform *PlatformSdl) *System {
+func NewSystem(platform *PlatformSdl, render *Render) *System {
 	InputInit()
+
+	r := NewRender()
+	r.Init(platform.GetScreenSize())
+
 	return &System{
 		timeReal:   platform.Now(),
 		timeScaled: 0.0,
@@ -21,10 +32,12 @@ func NewSystem(platform *PlatformSdl) *System {
 		tickLast:   0.0,
 		cycleTime:  0.0,
 		plaform:    platform,
+		render:     render,
 	}
 }
 
 func (s *System) Cleanup() {
+	s.render.Cleanup()
 	InputCleanUp()
 }
 
@@ -44,6 +57,12 @@ func (s *System) Update() {
 	if s.cycleTime > 3600*math.Pi {
 		s.cycleTime -= 3600 * math.Pi
 	}
+	s.render.FramePrepare()
+
+	// TODO: Update game logic here
+
+	s.render.FrameEnd(s.cycleTime)
+	InputClear()
 }
 
 func (s *System) ResetCycleTime() {
