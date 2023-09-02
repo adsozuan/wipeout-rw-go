@@ -145,6 +145,12 @@ func (r *Render) Init() {
 
 }
 
+func (r *Render) Cleanup() {
+	// TODO see if this is needed
+	// gl.DeleteTextures(1, &r.atlasTexture)
+	// gl.DeleteBuffers(1, &r.vbo)
+}
+
 func (r *Render) SetPostEffect(postEffect RenderPostEffect) error {
 	if postEffect >= NumRenderPostEffects {
 		return fmt.Errorf("invalid post effect %d", postEffect)
