@@ -154,6 +154,59 @@ func (r *Render) SetPostEffect(postEffect RenderPostEffect) error {
 	return nil
 }
 
+func (r *Render) FramePrepare() {
+	gl.UseProgram(r.programGame.program)
+	gl.BindVertexArray(r.programGame.vao)
+	gl.BindBuffer(gl.FRAMEBUFFER, r.backBuffer)
+
+	gl.BindTexture(gl.TEXTURE_2D, r.atlasTexture)
+	gl.Uniform2f(gl.Int(r.programGame.uniform.screen), 0, 0)
+	gl.Enable(gl.DEPTH_TEST)
+	gl.DepthMask(gl.TRUE)
+	gl.Disable(gl.POLYGON_OFFSET_FILL)
+	gl.ClearColor(0, 0, 0, 1)
+	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+	gl.Enable(gl.DEPTH_TEST)
+}
+
+func (r *Render) FrameEnd(cycleTime float64) {
+	r.Flush()
+
+	gl.UseProgram(r.programPostEffect.program)
+	gl.BindVertexArray(r.programPostEffect.vao)
+
+	gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
+	gl.Viewport(0, 0, gl.Sizei(r.screenSize.X), gl.Sizei(r.screenSize.Y))
+	gl.BindTexture(gl.TEXTURE_2D, r.backBufferTexture)
+	gl.UniformMatrix4fv(gl.Int(r.programPostEffect.uniform.projection), 1, gl.FALSE, (*gl.Float)(&r.projectionMatbb[0]))
+	gl.Uniform1f(gl.Int(r.programPostEffect.uniform.time), gl.Float(cycleTime))
+	gl.Uniform2f(gl.Int(r.programPostEffect.uniform.screenSize), gl.Float(r.screenSize.X), gl.Float(r.screenSize.Y))
+
+	gl.ClearColor(0, 0, 0, 1)
+	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+
+	white := RGBA{128, 128, 128, 255}
+	r.trisLen++
+	r.trisBuffer[r.trisLen] = Tris{
+		Vertices: [3]Vertex{
+			Vertex{Pos: Vec3{0, float32(r.screenSize.Y), 0}, UV: Vec2{0, 0}, Color: white},
+			Vertex{Pos: Vec3{float32(r.screenSize.X), 0, 0}, UV: Vec2{1, 1}, Color: white},
+			Vertex{Pos: Vec3{0, 0, 0}, UV: Vec2{0, 1}, Color: white},
+		},
+	}
+	r.trisLen++
+	r.trisBuffer[r.trisLen] = Tris{
+		Vertices: [3]Vertex{
+			Vertex{Pos: Vec3{float32(r.screenSize.X), float32(r.screenSize.Y), 0}, UV: Vec2{1, 0}, Color: white},
+			Vertex{Pos: Vec3{float32(r.screenSize.X), 0, 0}, UV: Vec2{1, 1}, Color: white},
+			Vertex{Pos: Vec3{0, float32(r.screenSize.Y), 0}, UV: Vec2{0, 0}, Color: white},
+		},
+	}
+
+	r.Flush()
+
+}
+
 func (r *Render) SetView(pos Vec3, angles Vec3) {
 	r.Flush()
 	r.SetDepthWrite(true)
