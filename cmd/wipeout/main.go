@@ -22,7 +22,8 @@ func run() error {
 	defer sdl.Quit()
 
 	var err error
-	platform, err := wipeout.NewPlatformSdl("Wipeout", 0, 0, 800, 600)
+	platform, err := wipeout.NewPlatformSdl(wipeout.SystemWindowName, 0, 0,
+		wipeout.SystemWindowHeight, wipeout.SystemWindowWidth)
 	if err != nil {
 		return err
 	}
@@ -34,7 +35,8 @@ func run() error {
 		return err
 	}
 
-	system := wipeout.NewSystem(platform)
+	render := wipeout.NewRender()
+	system := wipeout.NewSystem(platform, render)
 
 	for !platform.ExitWanted() {
 		platform.PumpEvents()
