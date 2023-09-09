@@ -6,6 +6,7 @@ import (
 	"runtime"
 
 	"github.com/adsozuan/wipeout-rw-go/engine"
+	wipeout "github.com/adsozuan/wipeout-rw-go/game"
 	gl "github.com/chsc/gogl/gl33"
 
 	//gl "github.com/chsc/gogl/gl33"
@@ -54,10 +55,13 @@ func run() error {
 
 	system := engine.NewSystem(platform)
 
+	title := wipeout.NewTitle(float32(system.Time()), system.Render)
+
 	for !platform.ExitWanted() {
 		platform.PumpEvents()
 		platform.PrepareFrame()
 		system.Update()
+		title.Update()
 		platform.EndFrame()
 	}
 

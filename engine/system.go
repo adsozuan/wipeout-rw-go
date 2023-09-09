@@ -16,7 +16,7 @@ type System struct {
 	tickLast   float64
 	cycleTime  float64
 	plaform    *PlatformSdl
-	render     *Render
+	Render     *Render
 }
 
 func NewSystem(platform *PlatformSdl) *System {
@@ -32,12 +32,12 @@ func NewSystem(platform *PlatformSdl) *System {
 		tickLast:   0.0,
 		cycleTime:  0.0,
 		plaform:    platform,
-		render:     r,
+		Render:     r,
 	}
 }
 
 func (s *System) Cleanup() {
-	s.render.Cleanup()
+	s.Render.Cleanup()
 	InputCleanUp()
 }
 
@@ -57,11 +57,11 @@ func (s *System) Update() {
 	if s.cycleTime > 3600*math.Pi {
 		s.cycleTime -= 3600 * math.Pi
 	}
-	s.render.FramePrepare()
+	s.Render.FramePrepare()
 
 	// TODO: Update game logic here
 
-	s.render.FrameEnd(s.cycleTime)
+	s.Render.FrameEnd(s.cycleTime)
 	InputClear()
 }
 
