@@ -51,10 +51,14 @@ type RenderTexture struct {
 	offset Vec2i
 	size   Vec2i
 }
+var (
+	// For pinning the array in memory
+	trisBuffer [RenderTrisBufferCapacity]Tris
+	
+)
 
 type Render struct {
 	vbo        gl.Uint
-	trisBuffer [RenderTrisBufferCapacity]Tris
 	trisLen    int
 
 	screenSize     Vec2i
@@ -290,7 +294,7 @@ func (r *Render) FrameEnd(cycleTime float64) {
 
 	white := RGBA{128, 128, 128, 255}
 	r.trisLen++
-	r.trisBuffer[r.trisLen] = Tris{
+	trisBuffer[r.trisLen] = Tris{
 		Vertices: [3]Vertex{
 			Vertex{Pos: Vec3{0, gl.Float(r.screenSize.Y), 0}, UV: Vec2{0, 0}, Color: white},
 			Vertex{Pos: Vec3{gl.Float(r.screenSize.X), 0, 0}, UV: Vec2{1, 1}, Color: white},
@@ -298,7 +302,7 @@ func (r *Render) FrameEnd(cycleTime float64) {
 		},
 	}
 	r.trisLen++
-	r.trisBuffer[r.trisLen] = Tris{
+	trisBuffer[r.trisLen] = Tris{
 		Vertices: [3]Vertex{
 			Vertex{Pos: Vec3{gl.Float(r.screenSize.X), gl.Float(r.screenSize.Y), 0}, UV: Vec2{1, 0}, Color: white},
 			Vertex{Pos: Vec3{gl.Float(r.screenSize.X), 0, 0}, UV: Vec2{1, 1}, Color: white},
@@ -340,9 +344,8 @@ func (r *Render) Flush() {
 	}
 
 	gl.BindBuffer(gl.ARRAY_BUFFER, r.vbo)
-	var tris Tris
-	gl.BufferData(gl.ARRAY_BUFFER, gl.Sizeiptr(uintptr(r.trisLen)*ElemSize(tris)), gl.Pointer(&r.trisBuffer[0]), gl.DYNAMIC_DRAW)
-	gl.DrawArrays(gl.TRIANGLES, 0, gl.Sizei(r.trisLen*3))
+	gl.BufferData(gl.ARRAY_BUFFER, gl.Sizeiptr(r.trisLen*24), gl.Pointer(&trisBuffer[0]), gl.DYNAMIC_DRAW)
+	gl.DrawArrays(gl.TRIANGLES, gl.Int(0), gl.Sizei(r.trisLen*3))
 	r.trisLen = 0
 }
 
@@ -430,7 +433,7 @@ func (r *Render) PushTris(tris Tris, textureIndex int) error {
 		tris.Vertices[i].UV.Y += gl.Float(t.offset.Y)
 	}
 	r.trisLen++
-	r.trisBuffer[r.trisLen] = tris
+	trisBuffer[r.trisLen] = tris
 
 	return nil
 }
