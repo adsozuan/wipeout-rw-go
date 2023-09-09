@@ -1,4 +1,4 @@
-package wipeout
+package engine
 
 import (
 	"fmt"
@@ -51,15 +51,15 @@ type RenderTexture struct {
 	offset Vec2i
 	size   Vec2i
 }
+
 var (
 	// For pinning the array in memory
 	trisBuffer [RenderTrisBufferCapacity]Tris
-	
 )
 
 type Render struct {
-	vbo        gl.Uint
-	trisLen    int
+	vbo     gl.Uint
+	trisLen int
 
 	screenSize     Vec2i
 	backBufferSize Vec2i

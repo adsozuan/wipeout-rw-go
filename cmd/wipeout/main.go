@@ -5,7 +5,7 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/adsozuan/wipeout-rw-go"
+	"github.com/adsozuan/wipeout-rw-go/engine"
 	gl "github.com/chsc/gogl/gl33"
 
 	//gl "github.com/chsc/gogl/gl33"
@@ -28,8 +28,8 @@ func run() error {
 	defer sdl.Quit()
 
 	var err error
-	platform, err := wipeout.NewPlatformSdl(wipeout.SystemWindowName, 0, 0,
-		wipeout.SystemWindowHeight, wipeout.SystemWindowWidth)
+	platform, err := engine.NewPlatformSdl(engine.SystemWindowName, 0, 0,
+		engine.SystemWindowHeight, engine.SystemWindowWidth)
 	if err != nil {
 		return err
 	}
@@ -44,7 +44,7 @@ func run() error {
 		panic(err)
 	}
 
-	gl.Viewport(0, 0, gl.Sizei(wipeout.SystemWindowWidth), gl.Sizei(wipeout.SystemWindowHeight))
+	gl.Viewport(0, 0, gl.Sizei(engine.SystemWindowWidth), gl.Sizei(engine.SystemWindowHeight))
 	// OPENGL FLAGS
 	gl.ClearColor(0.0, 0.1, 0.0, 1.0)
 	gl.Enable(gl.DEPTH_TEST)
@@ -52,7 +52,7 @@ func run() error {
 	gl.Enable(gl.BLEND)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
-	system := wipeout.NewSystem(platform)
+	system := engine.NewSystem(platform)
 
 	for !platform.ExitWanted() {
 		platform.PumpEvents()

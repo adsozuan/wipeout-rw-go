@@ -1,4 +1,4 @@
-package wipeout
+package engine
 
 func Scale(v, inMin, inMax, outMin, outMax float64) float64 {
 	return outMin + (outMax-outMin)*((v-inMin)/(inMax-inMin))

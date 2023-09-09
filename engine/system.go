@@ -1,4 +1,4 @@
-package wipeout
+package engine
 
 import "math"
 
