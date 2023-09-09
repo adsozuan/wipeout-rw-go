@@ -19,7 +19,7 @@ type System struct {
 	render     *Render
 }
 
-func NewSystem(platform *PlatformSdl, render *Render) *System {
+func NewSystem(platform *PlatformSdl) *System {
 	InputInit()
 
 	r := NewRender()
@@ -32,7 +32,7 @@ func NewSystem(platform *PlatformSdl, render *Render) *System {
 		tickLast:   0.0,
 		cycleTime:  0.0,
 		plaform:    platform,
-		render:     render,
+		render:     r,
 	}
 }
 

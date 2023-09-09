@@ -3,6 +3,12 @@ package wipeout
 import (
 	"math"
 	"reflect"
+
+	gl "github.com/chsc/gogl/gl33"
+)
+
+var (
+	Mat4Id = NewMat4Identity()
 )
 
 func ElemSize(container interface{}) uintptr {
@@ -10,7 +16,7 @@ func ElemSize(container interface{}) uintptr {
 }
 
 type Vec2 struct {
-	X, Y float32
+	X, Y gl.Float
 }
 
 type Vec2i struct {
@@ -18,10 +24,10 @@ type Vec2i struct {
 }
 
 type Vec3 struct {
-	X, Y, Z float32
+	X, Y, Z gl.Float
 }
 
-type Mat4 [16]float32
+type Mat4 [16]gl.Float
 
 type Vertex struct {
 	Pos   Vec3
@@ -46,14 +52,14 @@ func NewRGBA(r, g, b, a uint8) RGBA {
 	}
 }
 
-func NewVec2(x, y float32) Vec2 {
+func NewVec2(x, y gl.Float) Vec2 {
 	return Vec2{
 		X: x,
 		Y: y,
 	}
 }
 
-func NewVec3(x, y, z float32) Vec3 {
+func NewVec3(x, y, z gl.Float) Vec3 {
 	return Vec3{
 		X: x,
 		Y: y,
@@ -68,27 +74,27 @@ func NewVec2i(x, y int32) Vec2i {
 	}
 }
 
-func NewMat4(m [16]float32) Mat4 {
+func NewMat4(m [16]gl.Float) Mat4 {
 	return Mat4(m)
 }
 
 func NewMat4Identity() Mat4 {
-	return NewMat4([16]float32{
-		1, 0, 0, 0,
-		0, 1, 0, 0,
-		0, 0, 1, 0,
-		0, 0, 0, 1,
+	return NewMat4([16]gl.Float{
+		gl.Float(1), gl.Float(0), gl.Float(0), gl.Float(0),
+		gl.Float(0), gl.Float(1), gl.Float(0), gl.Float(0),
+		gl.Float(0), gl.Float(0), gl.Float(1), gl.Float(0),
+		gl.Float(0), gl.Float(0), gl.Float(0), gl.Float(1),
 	})
 }
 
-func Vec2MulF(a Vec2, f float32) Vec2 {
+func Vec2MulF(a Vec2, f gl.Float) Vec2 {
 	return NewVec2(
 		a.X*f,
 		a.Y*f,
 	)
 }
 
-func Vec2iMulF(a Vec2i, f float32) Vec2i {
+func Vec2iMulF(a Vec2i, f gl.Float) Vec2i {
 	return NewVec2i(
 		a.X,
 		a.Y,
@@ -119,7 +125,7 @@ func Vec3Mul(a, b Vec3) Vec3 {
 	)
 }
 
-func Vec3MulF(a Vec3, f float32) Vec3 {
+func Vec3MulF(a Vec3, f gl.Float) Vec3 {
 	return NewVec3(
 		a.X*f,
 		a.Y*f,
@@ -135,7 +141,7 @@ func Vec3Inv(a Vec3) Vec3 {
 	)
 }
 
-func Vec3DivF(a Vec3, f float32) Vec3 {
+func Vec3DivF(a Vec3, f gl.Float) Vec3 {
 	return NewVec3(
 		a.X/f,
 		a.Y/f,
@@ -143,9 +149,9 @@ func Vec3DivF(a Vec3, f float32) Vec3 {
 	)
 }
 
-func Vec3Len(a Vec3) float32 {
+func Vec3Len(a Vec3) gl.Float {
 	af := a.X*a.X + a.Y*a.Y + a.Z*a.Z
-	return float32(math.Sqrt(float64(af)))
+	return gl.Float(math.Sqrt(float64(af)))
 }
 
 func Vec3Cross(a, b Vec3) Vec3 {
@@ -156,12 +162,12 @@ func Vec3Cross(a, b Vec3) Vec3 {
 	)
 }
 
-func Vec3Dot(a, b Vec3) float32 {
-	af := float64(a.X*b.X + a.Y*b.Y + a.Z*b.Z)
-	return float32(af)
+func Vec3Dot(a, b Vec3) gl.Float {
+	af := a.X*b.X + a.Y*b.Y + a.Z*b.Z
+	return af
 }
 
-func Vec3Lerp(a, b Vec3, t float32) Vec3 {
+func Vec3Lerp(a, b Vec3, t gl.Float) Vec3 {
 	return NewVec3(
 		a.X+t*(b.X-a.X),
 		a.Y+t*(b.Y-a.Y),
@@ -174,13 +180,13 @@ func Vec3Normalize(a Vec3) Vec3 {
 	return Vec3DivF(a, length)
 }
 
-func WrapAngle(a float32) float32 {
+func WrapAngle(a gl.Float) gl.Float {
 	af := float64(a) + math.Pi
 	af = math.Mod(af, math.Pi*2)
 	if af < 0 {
 		af += math.Pi * 2
 	}
-	return float32(af - math.Pi)
+	return gl.Float(af - math.Pi)
 }
 
 func Vec3WrapAngle(a Vec3) Vec3 {
@@ -191,10 +197,10 @@ func Vec3WrapAngle(a Vec3) Vec3 {
 	}
 }
 
-func Vec3Angle(a, b Vec3) float32 {
+func Vec3Angle(a, b Vec3) gl.Float {
 	magnitude := Vec3Len(a) * Vec3Len(b)
 	cosine := Vec3Dot(a, b) / magnitude
-	return float32(math.Acos(float64(Clamp(cosine, -1, 1))))
+	return gl.Float(math.Acos(float64(Clamp(cosine, -1, 1))))
 }
 
 func Vec3Transform(a Vec3, mat *Mat4) Vec3 {
@@ -215,13 +221,13 @@ func Vec3ProjectToRay(p, r0, r1 Vec3) Vec3 {
 	return Vec3Add(r0, Vec3MulF(ray, dp))
 }
 
-func Vec3DistanceToPlane(p, planePos, planeNormal Vec3) float32 {
+func Vec3DistanceToPlane(p, planePos, planeNormal Vec3) gl.Float {
 	dotProduct := Vec3Dot(Vec3Sub(planePos, p), planeNormal)
 	normDotProduct := Vec3Dot(Vec3MulF(planeNormal, -1), planeNormal)
 	return dotProduct / normDotProduct
 }
 
-func Vec3Reflect(incidence, normal Vec3, f float32) Vec3 {
+func Vec3Reflect(incidence, normal Vec3, f gl.Float) Vec3 {
 	return Vec3Add(incidence, Vec3MulF(normal, Vec3Dot(normal, Vec3MulF(incidence, -1))*f))
 }
 
@@ -237,7 +243,7 @@ func Clamp[T Number](value, min, max T) T {
 }
 
 type Number interface {
-	uint | uint8 | uint16 | uint32 | uint64 | int | int8 | int16 | int32 | int64 | float32 | float64
+	uint | uint8 | uint16 | uint32 | uint64 | int | int8 | int16 | int32 | int64 | float32 | float64 | gl.Float
 }
 
 func Mat4SetTranslation(mat *Mat4, pos Vec3) {
@@ -254,15 +260,15 @@ func Mat4SetYawPitchRoll(mat *Mat4, rot Vec3) {
 	cy := math.Cos(float64(-rot.Y))
 	cz := math.Cos(float64(-rot.Z))
 
-	mat[0] = float32(cy*cz + sx*sy*sz)
-	mat[1] = float32(cz*sx*sy - cy*sz)
-	mat[2] = float32(cx * sy)
-	mat[4] = float32(cx * sz)
-	mat[5] = float32(cx * cz)
-	mat[6] = float32(-sx)
-	mat[8] = float32(-cz*sy + cy*sx*sz)
-	mat[9] = float32(cy*cz*sx + sy*sz)
-	mat[10] = float32(cx * cy)
+	mat[0] = gl.Float(cy*cz + (sx * sy * sz))
+	mat[1] = gl.Float(cz*sx*sy - cy*sz)
+	mat[2] = gl.Float(cx * sy)
+	mat[4] = gl.Float(cx * sz)
+	mat[5] = gl.Float(cx * cz)
+	mat[6] = gl.Float(-sx)
+	mat[8] = gl.Float(-cz*sy + cy*sx*sz)
+	mat[9] = gl.Float(cy*cz*sx + sy*sz)
+	mat[10] = gl.Float(cx * cy)
 }
 
 func Mat4SetRollPitchYaw(mat *Mat4, rot Vec3) {
@@ -273,15 +279,15 @@ func Mat4SetRollPitchYaw(mat *Mat4, rot Vec3) {
 	cy := math.Cos(float64(-rot.Y))
 	cz := math.Cos(float64(-rot.Z))
 
-	mat[0] = float32(cy*cz - sx*sy*sz)
-	mat[1] = float32(-cx * sz)
-	mat[2] = float32(cz*sy + cy*sx*sz)
-	mat[4] = float32(cz*sx*sy + cy*sz)
-	mat[5] = float32(cx * cz)
-	mat[6] = float32(-cy*cz*sx + sy*sz)
-	mat[8] = float32(-cx * sy)
-	mat[9] = float32(sx)
-	mat[10] = float32(cx * cy)
+	mat[0] = gl.Float(cy*cz - sx*sy*sz)
+	mat[1] = gl.Float(-cx * sz)
+	mat[2] = gl.Float(cz*sy + cy*sx*sz)
+	mat[4] = gl.Float(cz*sx*sy + cy*sz)
+	mat[5] = gl.Float(cx * cz)
+	mat[6] = gl.Float(-cy*cz*sx + sy*sz)
+	mat[8] = gl.Float(-cx * sy)
+	mat[9] = gl.Float(sx)
+	mat[10] = gl.Float(cx * cy)
 }
 
 func Mat4Translate(mat *Mat4, translation Vec3) {

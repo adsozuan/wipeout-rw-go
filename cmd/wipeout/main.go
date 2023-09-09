@@ -3,8 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime"
 
 	"github.com/adsozuan/wipeout-rw-go"
+	gl "github.com/chsc/gogl/gl33"
+
+	//gl "github.com/chsc/gogl/gl33"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -16,6 +20,8 @@ func main() {
 }
 
 func run() error {
+	runtime.LockOSThread()
+
 	if err := sdl.Init(sdl.INIT_VIDEO | sdl.INIT_AUDIO | sdl.INIT_JOYSTICK | sdl.INIT_GAMECONTROLLER); err != nil {
 		return err
 	}
@@ -34,9 +40,19 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	if err = gl.Init(); err != nil {
+		panic(err)
+	}
 
-	render := wipeout.NewRender()
-	system := wipeout.NewSystem(platform, render)
+	gl.Viewport(0, 0, gl.Sizei(wipeout.SystemWindowWidth), gl.Sizei(wipeout.SystemWindowHeight))
+	// OPENGL FLAGS
+	gl.ClearColor(0.0, 0.1, 0.0, 1.0)
+	gl.Enable(gl.DEPTH_TEST)
+	gl.DepthFunc(gl.LESS)
+	gl.Enable(gl.BLEND)
+	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+
+	system := wipeout.NewSystem(platform)
 
 	for !platform.ExitWanted() {
 		platform.PumpEvents()

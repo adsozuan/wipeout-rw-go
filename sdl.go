@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	PLATFORM_WINDOW_FLAGS = 0
+	PLATFORM_WINDOW_FLAGS = sdl.WINDOW_OPENGL
 )
 
 var (
@@ -69,13 +69,10 @@ func NewPlatformSdl(title string, x, y, w, h int32) (*PlatformSdl, error) {
 
 	window, err := sdl.CreateWindow("Wipeout",
 		sdl.WINDOWPOS_CENTERED, sdl.WINDOWPOS_CENTERED,
-		800, 600, sdl.WINDOW_SHOWN|PLATFORM_WINDOW_FLAGS)
+		800, 600, sdl.WINDOW_SHOWN|sdl.WINDOW_OPENGL)
 	if err != nil {
 		return nil, err
 	}
-	// if err = gl.Init(); err != nil {
-	// 	panic(err)
-	// }
 
 	// gl.Enable(gl.DEPTH_TEST)
 
@@ -206,14 +203,14 @@ func (sw *PlatformSdl) IsFullScreen() bool {
 
 func (sw *PlatformSdl) VideoInit() error {
 	var err error
-	// sdl.GLSetAttribute(sdl.GL_CONTEXT_PROFILE_MASK, sdl.GL_CONTEXT_PROFILE_ES)
-	// sdl.GLSetAttribute(sdl.GL_CONTEXT_MAJOR_VERSION, 2)
-	// sdl.GLSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 1)
-	// GlContext, err = sw.window.GLCreateContext()
-	// if err != nil {
-	// 	return err
-	// }
-	// sdl.GLSetSwapInterval(1)
+	sdl.GLSetAttribute(sdl.GL_CONTEXT_PROFILE_MASK, sdl.GL_CONTEXT_PROFILE_CORE)
+	sdl.GLSetAttribute(sdl.GL_CONTEXT_MAJOR_VERSION, 3)
+	sdl.GLSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 2)
+	GlContext, err = sw.window.GLCreateContext()
+	if err != nil {
+		return err
+	}
+	sdl.GLSetSwapInterval(1)
 	// return nil
 	Renderer, err = sdl.CreateRenderer(sw.window, -1, sdl.RENDERER_ACCELERATED)
 	if err != nil {

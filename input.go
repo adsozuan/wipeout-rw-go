@@ -1,5 +1,7 @@
 package wipeout
 
+import gl "github.com/chsc/gogl/gl33"
+
 // Button enumerations
 type Button int
 
@@ -322,7 +324,7 @@ func InputInit() {
 }
 
 func InputMousePos() Vec2 {
-	return Vec2{X: float32(MouseX), Y: float32(MouseY)}
+	return Vec2{X: gl.Float(MouseX), Y: gl.Float(MouseY)}
 }
 
 func InputSetMousePos(x, y int32) {

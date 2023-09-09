@@ -3,7 +3,7 @@ package wipeout
 import (
 	"fmt"
 
-	gl "github.com/chsc/gogl/gl32"
+	gl "github.com/chsc/gogl/gl33"
 )
 
 const (

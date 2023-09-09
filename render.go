@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	gl "github.com/chsc/gogl/gl32"
+	gl "github.com/chsc/gogl/gl33"
 )
 
 const (
@@ -110,7 +110,7 @@ func NewRender() *Render {
 }
 
 func (r *Render) Init(screenSize Vec2i) {
-	gl.GenTextures(gl.TEXTURE_2D, &r.atlasTexture)
+	gl.GenTextures(1, &r.atlasTexture)
 	gl.BindTexture(gl.TEXTURE_2D, r.atlasTexture)
 	if RenderUseMipMaps {
 		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR)
@@ -140,6 +140,7 @@ func (r *Render) Init(screenSize Vec2i) {
 
 	// Game shader
 	prgGame := ShaderGameInit()
+	r.programGame = prgGame
 	gl.UseProgram(prgGame.program)
 	gl.BindVertexArray(prgGame.vao)
 
@@ -240,10 +241,10 @@ func (r *Render) Setup3dProjectionMat(size Vec2i) Mat4 {
 	f := float32(1.0 / math.Tan(fov*0.5))
 	nf := float32(1.0 / (NearPlane - FarPlane))
 	return Mat4{
-		f / aspect, 0, 0, 0,
-		0, f, 0, 0,
-		0, 0, (FarPlane + NearPlane) * nf, -1,
-		0, 0, (2 * FarPlane * NearPlane) * nf, 0,
+		gl.Float(f / aspect), 0, 0, 0,
+		0, gl.Float(f), 0, 0,
+		0, 0, gl.Float((FarPlane + NearPlane) * nf), -1,
+		0, 0, gl.Float((2 * FarPlane * NearPlane) * nf), 0,
 	}
 }
 
@@ -291,17 +292,17 @@ func (r *Render) FrameEnd(cycleTime float64) {
 	r.trisLen++
 	r.trisBuffer[r.trisLen] = Tris{
 		Vertices: [3]Vertex{
-			Vertex{Pos: Vec3{0, float32(r.screenSize.Y), 0}, UV: Vec2{0, 0}, Color: white},
-			Vertex{Pos: Vec3{float32(r.screenSize.X), 0, 0}, UV: Vec2{1, 1}, Color: white},
+			Vertex{Pos: Vec3{0, gl.Float(r.screenSize.Y), 0}, UV: Vec2{0, 0}, Color: white},
+			Vertex{Pos: Vec3{gl.Float(r.screenSize.X), 0, 0}, UV: Vec2{1, 1}, Color: white},
 			Vertex{Pos: Vec3{0, 0, 0}, UV: Vec2{0, 1}, Color: white},
 		},
 	}
 	r.trisLen++
 	r.trisBuffer[r.trisLen] = Tris{
 		Vertices: [3]Vertex{
-			Vertex{Pos: Vec3{float32(r.screenSize.X), float32(r.screenSize.Y), 0}, UV: Vec2{1, 0}, Color: white},
-			Vertex{Pos: Vec3{float32(r.screenSize.X), 0, 0}, UV: Vec2{1, 1}, Color: white},
-			Vertex{Pos: Vec3{0, float32(r.screenSize.Y), 0}, UV: Vec2{0, 0}, Color: white},
+			Vertex{Pos: Vec3{gl.Float(r.screenSize.X), gl.Float(r.screenSize.Y), 0}, UV: Vec2{1, 0}, Color: white},
+			Vertex{Pos: Vec3{gl.Float(r.screenSize.X), 0, 0}, UV: Vec2{1, 1}, Color: white},
+			Vertex{Pos: Vec3{0, gl.Float(r.screenSize.Y), 0}, UV: Vec2{0, 0}, Color: white},
 		},
 	}
 
@@ -320,8 +321,7 @@ func (r *Render) SetView(pos Vec3, angles Vec3) {
 	Mat4Translate(&r.viewMat, Vec3Inv(pos))
 	Mat4SetYawPitchRoll(&r.spriteMat, Vec3{-angles.X, angles.Y - math.Pi, 0})
 
-	mat4Identity := NewMat4Identity()
-	r.SetModelMat(&mat4Identity)
+	r.SetModelMat(&Mat4Id)
 
 	gl.UniformMatrix4fv(gl.Int(r.programGame.uniform.view), 1, gl.FALSE, (*gl.Float)(&r.viewMat[0]))
 	gl.UniformMatrix4fv(gl.Int(r.programGame.uniform.projection), 1, gl.FALSE, (*gl.Float)(&r.projectionMat3d[0]))
@@ -349,7 +349,7 @@ func (r *Render) Flush() {
 func (r *Render) SetModelMat(m *Mat4) {
 	r.Flush()
 
-	gl.UniformMatrix4fv(gl.Int(r.programGame.uniform.model), 1, gl.FALSE, (*gl.Float)(&m[0]))
+	gl.UniformMatrix4fv(gl.Int(r.programGame.uniform.model), 1, gl.FALSE, &m[0])
 }
 
 func (r *Render) SetView2d() {
@@ -426,8 +426,8 @@ func (r *Render) PushTris(tris Tris, textureIndex int) error {
 	t := &r.textures[textureIndex]
 
 	for i := 0; i < 3; i++ {
-		tris.Vertices[i].UV.X += float32(t.offset.X)
-		tris.Vertices[i].UV.Y += float32(t.offset.Y)
+		tris.Vertices[i].UV.X += gl.Float(t.offset.X)
+		tris.Vertices[i].UV.Y += gl.Float(t.offset.Y)
 	}
 	r.trisLen++
 	r.trisBuffer[r.trisLen] = tris
@@ -440,26 +440,26 @@ func (r *Render) PushSprite(pos Vec3, size Vec2i, color RGBA, textureIndex int) 
 		return fmt.Errorf("invalid texture index %d", textureIndex)
 	}
 
-	p1 := Vec3Add(pos, Vec3Transform(Vec3{float32(-size.X) * 0.5, float32(-size.Y) * 0.5, 0}, &(r.spriteMat)))
-	p2 := Vec3Add(pos, Vec3Transform(Vec3{float32(size.X) * 0.5, float32(-size.Y) * 0.5, 0}, &(r.spriteMat)))
-	p3 := Vec3Add(pos, Vec3Transform(Vec3{float32(-size.X) * 0.5, float32(size.Y) * 0.5, 0}, &(r.spriteMat)))
-	p4 := Vec3Add(pos, Vec3Transform(Vec3{float32(size.X) * 0.5, float32(size.Y) * 0.5, 0}, &(r.spriteMat)))
+	p1 := Vec3Add(pos, Vec3Transform(Vec3{gl.Float(-size.X) * 0.5, gl.Float(-size.Y) * 0.5, 0}, &(r.spriteMat)))
+	p2 := Vec3Add(pos, Vec3Transform(Vec3{gl.Float(size.X) * 0.5, gl.Float(-size.Y) * 0.5, 0}, &(r.spriteMat)))
+	p3 := Vec3Add(pos, Vec3Transform(Vec3{gl.Float(-size.X) * 0.5, gl.Float(size.Y) * 0.5, 0}, &(r.spriteMat)))
+	p4 := Vec3Add(pos, Vec3Transform(Vec3{gl.Float(size.X) * 0.5, gl.Float(size.Y) * 0.5, 0}, &(r.spriteMat)))
 
 	t := &r.textures[textureIndex]
 
 	r.PushTris(Tris{
 		Vertices: [3]Vertex{
 			Vertex{Pos: p1, UV: Vec2{0, 0}, Color: color},
-			Vertex{Pos: p2, UV: Vec2{float32(0 + t.size.X), 0}, Color: color},
-			Vertex{Pos: p3, UV: Vec2{0, float32(0 + t.size.Y)}, Color: color},
+			Vertex{Pos: p2, UV: Vec2{gl.Float(0 + t.size.X), 0}, Color: color},
+			Vertex{Pos: p3, UV: Vec2{0, gl.Float(0 + t.size.Y)}, Color: color},
 		},
 	}, textureIndex)
 
 	r.PushTris(Tris{
 		Vertices: [3]Vertex{
-			Vertex{Pos: p3, UV: Vec2{0, float32(0 + t.size.Y)}, Color: color},
-			Vertex{Pos: p2, UV: Vec2{float32(0 + t.size.X), 0}, Color: color},
-			Vertex{Pos: p4, UV: Vec2{float32(0 + t.size.X), float32(0 + t.size.Y)}, Color: color},
+			Vertex{Pos: p3, UV: Vec2{0, gl.Float(0 + t.size.Y)}, Color: color},
+			Vertex{Pos: p2, UV: Vec2{gl.Float(0 + t.size.X), 0}, Color: color},
+			Vertex{Pos: p4, UV: Vec2{gl.Float(0 + t.size.X), gl.Float(0 + t.size.Y)}, Color: color},
 		},
 	}, textureIndex)
 
@@ -483,16 +483,16 @@ func (r *Render) Push2dTitle(pos Vec2i, uvOffset Vec2i, uvSize Vec2i, size Vec2i
 
 	r.PushTris(Tris{
 		Vertices: [3]Vertex{
-			{Pos: Vec3{float32(pos.X) + float32(size.X), float32(pos.Y) + float32(size.Y), 0}, UV: Vec2{float32(uvOffset.X), float32(uvOffset.Y)}, Color: color},
-			{Pos: Vec3{float32(pos.X + uvSize.X), float32(pos.Y), 0}, UV: Vec2{float32(uvOffset.X + uvSize.X), float32(uvOffset.Y)}, Color: color},
-			{Pos: Vec3{float32(pos.X), float32(pos.Y), 0}, UV: Vec2{float32(uvOffset.X), float32(uvOffset.Y)}, Color: color},
+			{Pos: Vec3{gl.Float(pos.X) + gl.Float(size.X), gl.Float(pos.Y) + gl.Float(size.Y), 0}, UV: Vec2{gl.Float(uvOffset.X), gl.Float(uvOffset.Y)}, Color: color},
+			{Pos: Vec3{gl.Float(pos.X + uvSize.X), gl.Float(pos.Y), 0}, UV: Vec2{gl.Float(uvOffset.X + uvSize.X), gl.Float(uvOffset.Y)}, Color: color},
+			{Pos: Vec3{gl.Float(pos.X), gl.Float(pos.Y), 0}, UV: Vec2{gl.Float(uvOffset.X), gl.Float(uvOffset.Y)}, Color: color},
 		}}, textureIndex)
 
 	r.PushTris(Tris{
 		Vertices: [3]Vertex{
-			{Pos: Vec3{float32(pos.X) + float32(size.X), float32(pos.Y) + float32(size.Y), 0}, UV: Vec2{float32(uvOffset.X) + float32(uvSize.X), float32(uvOffset.Y) + float32(uvSize.Y)}, Color: color},
-			{Pos: Vec3{float32(pos.X + uvSize.X), float32(pos.Y), 0}, UV: Vec2{float32(uvOffset.X + uvSize.X), float32(uvOffset.Y)}, Color: color},
-			{Pos: Vec3{float32(pos.X), float32(pos.Y), 0}, UV: Vec2{float32(uvOffset.X), float32(uvOffset.Y) + float32(uvSize.Y)}, Color: color},
+			{Pos: Vec3{gl.Float(pos.X) + gl.Float(size.X), gl.Float(pos.Y) + gl.Float(size.Y), 0}, UV: Vec2{gl.Float(uvOffset.X) + gl.Float(uvSize.X), gl.Float(uvOffset.Y) + gl.Float(uvSize.Y)}, Color: color},
+			{Pos: Vec3{gl.Float(pos.X + uvSize.X), gl.Float(pos.Y), 0}, UV: Vec2{gl.Float(uvOffset.X + uvSize.X), gl.Float(uvOffset.Y)}, Color: color},
+			{Pos: Vec3{gl.Float(pos.X), gl.Float(pos.Y), 0}, UV: Vec2{gl.Float(uvOffset.X), gl.Float(uvOffset.Y) + gl.Float(uvSize.Y)}, Color: color},
 		}}, textureIndex)
 
 	return nil
@@ -673,16 +673,16 @@ func (r *Render) TexturesDump(path string) error {
 }
 
 func (r *Render) Setup2dProjectionMat(size Vec2i) Mat4 {
-	var near float32 = -1
-	var far float32 = 1
-	var left float32 = 0
-	var right float32 = float32(size.X)
-	var top float32 = 0
-	var bottom float32 = float32(size.Y)
+	var near gl.Float = -1
+	var far gl.Float = 1
+	var left gl.Float = 0
+	var right gl.Float = gl.Float(size.X)
+	var top gl.Float = 0
+	var bottom gl.Float = gl.Float(size.Y)
 
-	var lr float32 = 1.0 / (left - right)
-	var bt float32 = 1.0 / (bottom - top)
-	var nf float32 = 1.0 / (near - far)
+	var lr gl.Float = 1.0 / (left - right)
+	var bt gl.Float = 1.0 / (bottom - top)
+	var nf gl.Float = 1.0 / (near - far)
 
 	return Mat4{
 		-2 * lr, 0, 0, 0,
