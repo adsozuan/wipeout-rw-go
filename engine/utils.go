@@ -1,5 +1,9 @@
 package engine
 
+import (
+	"os"
+)
+
 func Scale(v, inMin, inMax, outMin, outMax float64) float64 {
 	return outMin + (outMax-outMin)*((v-inMin)/(inMax-inMin))
 }
@@ -72,4 +76,12 @@ func GetI32(bytes []uint8, p *uint32) int32 {
 
 func GetI32LE(bytes []uint8, p *uint32) int32 {
 	return int32(GetU32LE(bytes, p))
+}
+
+func LoadBinaryFile(filename string) ([]byte, error) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
 }

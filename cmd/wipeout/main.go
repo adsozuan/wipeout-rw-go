@@ -60,8 +60,8 @@ func run() error {
 	for !platform.ExitWanted() {
 		platform.PumpEvents()
 		platform.PrepareFrame()
-		system.Update()
 		title.Update()
+		system.Update()
 		platform.EndFrame()
 	}
 

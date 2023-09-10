@@ -1,6 +1,12 @@
 package wipeout
 
-import "github.com/adsozuan/wipeout-rw-go/engine"
+import (
+	"encoding/binary"
+
+	"github.com/blacktop/lzss"
+
+	"github.com/adsozuan/wipeout-rw-go/engine"
+)
 
 type UITextSize int
 
@@ -73,6 +79,10 @@ func NewUI(render *engine.Render) *UI {
 	}
 }
 
+func (ui *UI) Load() {
+
+}
+
 func (ui *UI) GetUiScale() int {
 	return ui.scale
 }
@@ -83,13 +93,13 @@ func (ui *UI) SetUiScale(scale int) {
 
 // DrawTextCentered renders centered text on the UI.
 func (ui *UI) DrawTextCentered(text string, pos engine.Vec2i, size UITextSize, color engine.RGBA) {
-	textWidth := ui.uiTextWidth(text, size) * ui.scale
+	textWidth := ui.textWidth(text, size) * ui.scale
 	pos.X -= int32(textWidth >> 1)
 	ui.DrawText(text, pos, size, color)
 }
 
-// uiTextWidth calculates the width of the text.
-func (ui *UI) uiTextWidth(text string, size UITextSize) int {
+// textWidth calculates the width of the text.
+func (ui *UI) textWidth(text string, size UITextSize) int {
 	cs := charSet[size]
 	width := 0
 
@@ -169,4 +179,45 @@ var charSet [UITextSizeMax]CharSet = [UITextSizeMax]CharSet{
 			{engine.Vec2i{160, 8}, 10}, {engine.Vec2i{170, 8}, 10}, {engine.Vec2i{180, 8}, 12}, {engine.Vec2i{192, 8}, 14}, {engine.Vec2i{206, 8}, 4}, {engine.Vec2i{210, 8}, 4}, {engine.Vec2i{193, 0}, 0}, {engine.Vec2i{193, 0}, 0},
 		},
 	},
+}
+
+type cmpT struct {
+	Len     uint32
+	Entries []*uint8
+}
+
+func imageLoadCompressed(name string) (*cmpT, error) {
+	Logger.Printf("load cmp %s\n", name)
+
+	// Load compressed bytes from the file
+	compressedBytes, err := engine.LoadBinaryFile(name)
+	if err != nil {
+		return nil, err
+	}
+
+	data := lzss.Decompress(compressedBytes)
+
+	// Initialize variables
+	var p uint32
+	var decompressedBytesOffset uint32
+
+	// Read the number of entries (Len) from data
+	imageCount := binary.LittleEndian.Uint32(data[p:])
+	p += 4
+
+	// Create a slice to hold pointers to uint8
+	entries := make([]*uint8, imageCount)
+
+	// Iterate through the entries and store their pointers
+	for i := uint32(0); i < imageCount; i++ {
+		offset := binary.LittleEndian.Uint32(data[p:])
+		entries[i] = &data[decompressedBytesOffset+offset]
+		p += 4
+	}
+
+	// Create and return the cmpT struct
+	return &cmpT{
+		Len:     imageCount,
+		Entries: entries,
+	}, nil
 }

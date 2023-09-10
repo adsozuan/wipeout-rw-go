@@ -55,6 +55,8 @@ type RenderTexture struct {
 var (
 	// For pinning the array in memory
 	trisBuffer [RenderTrisBufferCapacity]Tris
+
+	RenderInstance *Render
 )
 
 type Render struct {
@@ -109,6 +111,8 @@ func NewRender() *Render {
 	r.backBuffer = 0
 	r.backBufferTexture = 0
 	r.backBufferDepthBuffer = 0
+
+	RenderInstance = r
 
 	return r
 }
@@ -183,6 +187,10 @@ func (r *Render) SetScreenSize(size Vec2i) {
 	r.projectionMatbb = r.Setup2dProjectionMat(size)
 
 	r.SetResolution(r.renderResolution)
+}
+
+func (r *Render) Size() Vec2i {
+	return r.backBufferSize
 }
 
 func (r *Render) SetResolution(res RenderResolution) {
