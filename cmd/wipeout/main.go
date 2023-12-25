@@ -30,7 +30,7 @@ func run() error {
 
 	var err error
 	platform, err := engine.NewPlatformSdl(engine.SystemWindowName, 0, 0,
-		engine.SystemWindowHeight, engine.SystemWindowWidth)
+		engine.SystemWindowWidth, engine.SystemWindowHeight)
 	if err != nil {
 		return err
 	}
@@ -58,12 +58,25 @@ func run() error {
 	title := wipeout.NewTitle(float32(system.Time()), system.Render)
 
 	for !platform.ExitWanted() {
-		platform.PumpEvents()
-		platform.PrepareFrame()
-		title.Update()
+		err := platform.PumpEvents()
+		if err != nil {
+			return err
+		}
+		err = platform.PrepareFrame()
+		if err != nil {
+			return err
+		}
+		err = title.Update()
+		if err != nil {
+			return err
+		}
 		system.Update()
-		platform.EndFrame()
+		err = platform.EndFrame()
+		if err != nil {
+			return err
+		}
 	}
+	system.Cleanup()
 
 	platform.VideoCleanup()
 

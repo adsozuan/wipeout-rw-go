@@ -24,8 +24,14 @@ func NewTitle(startTime float32, render *engine.Render) *Title {
 	}
 }
 
-func (t *Title) Update() {
+func (t *Title) Update() error {
 	t.render.SetView2d()
-	t.render.Push2d(engine.NewVec2i(0, 0), t.render.Size(), engine.NewRGBA(128, 128, 128, 25), int(t.titleImage))
-	t.ui.DrawText("Wi", engine.NewVec2i(100, 100), UITextSize16, UIColorAccent)
+	err := t.render.Push2d(engine.NewVec2i(0, 0), t.render.Size(), engine.NewRGBA(128, 128, 128, 25), int(t.titleImage))
+	if err != nil {
+		return err
+	}
+	//t.ui.DrawText("Wi", engine.NewVec2i(100, 100), UITextSize16, UIColorAccent)
+	t.ui.DrawImage(engine.NewVec2i(0, 0), int(t.titleImage))
+
+	return nil
 }

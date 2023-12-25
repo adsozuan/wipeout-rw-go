@@ -1,12 +1,18 @@
 package engine
 
-import "math"
+import (
+	"log"
+	"math"
+	"os"
+)
 
 const (
 	SystemWindowName   = "Wipeout"
-	SystemWindowWidth  = 1280
-	SystemWindowHeight = 720
+	SystemWindowWidth  = 320
+	SystemWindowHeight = 240
 )
+
+var Logger *log.Logger
 
 // System is the main system of the game
 type System struct {
@@ -15,11 +21,13 @@ type System struct {
 	timeScale  float64
 	tickLast   float64
 	cycleTime  float64
-	plaform    *PlatformSdl
+	platform   *PlatformSdl
 	Render     *Render
 }
 
 func NewSystem(platform *PlatformSdl) *System {
+	Logger = log.New(os.Stderr, "engine |", log.Ldate|log.Ltime)
+	Logger.Printf("Init")
 	InputInit()
 
 	r := NewRender()
@@ -31,7 +39,7 @@ func NewSystem(platform *PlatformSdl) *System {
 		timeScale:  1.0,
 		tickLast:   0.0,
 		cycleTime:  0.0,
-		plaform:    platform,
+		platform:   platform,
 		Render:     r,
 	}
 }
@@ -42,11 +50,11 @@ func (s *System) Cleanup() {
 }
 
 func (s *System) Exit() {
-	s.plaform.Exit()
+	s.platform.Exit()
 }
 
 func (s *System) Update() {
-	timeRealNow := s.plaform.Now()
+	timeRealNow := s.platform.Now()
 	realDelta := timeRealNow - s.timeReal
 	s.timeReal = timeRealNow
 	s.tickLast = math.Min(realDelta, 0.1) * s.timeScale

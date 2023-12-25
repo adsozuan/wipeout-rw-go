@@ -18,8 +18,8 @@ const (
 )
 
 var (
-	UIColorAccent  = engine.RGBA{123, 98, 12, 255}
-	UIColorDefault = engine.RGBA{128, 128, 128, 255}
+	UIColorAccent  = engine.RGBA{R: 123, G: 98, B: 12, A: 255}
+	UIColorDefault = engine.RGBA{R: 128, G: 128, B: 128, A: 255}
 )
 
 type UIIconType int
@@ -131,6 +131,21 @@ func (ui *UI) DrawText(text string, pos engine.Vec2i, size UITextSize, color eng
 		}
 	}
 
+}
+
+func (ui *UI) DrawImage(pos engine.Vec2i, texture int) error {
+	scale, err := ui.render.TextureSize(texture)
+	if err != nil {
+		return err
+	}
+
+	scaledSize := ui.Scaled(scale)
+	err = ui.render.Push2d(pos, scaledSize, engine.RGBA{128, 128, 128, 255}, texture)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (ui *UI) Scaled(size engine.Vec2i) engine.Vec2i {

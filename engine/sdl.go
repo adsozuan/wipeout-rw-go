@@ -69,11 +69,14 @@ func NewPlatformSdl(title string, x, y, w, h int32) (*PlatformSdl, error) {
 
 	window, err := sdl.CreateWindow("Wipeout",
 		sdl.WINDOWPOS_CENTERED, sdl.WINDOWPOS_CENTERED,
-		800, 600, sdl.WINDOW_SHOWN|sdl.WINDOW_OPENGL)
+		w, h, sdl.WINDOW_SHOWN|sdl.WINDOW_OPENGL)
 	if err != nil {
 		return nil, err
 	}
 
+	if err != nil {
+		panic(err)
+	}
 	// gl.Enable(gl.DEPTH_TEST)
 
 	return &PlatformSdl{
@@ -100,15 +103,20 @@ func (sw *PlatformSdl) FindGamepad() {
 }
 
 // PumpEvents pumps events from SDL
-func (sw *PlatformSdl) PumpEvents() {
+func (sw *PlatformSdl) PumpEvents() error {
 
 	// Keyboards inputs
 	for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
 
 		// Handle Fullscreen with F11
 		if event.GetType() == sdl.KEYDOWN && event.(*sdl.KeyboardEvent).Keysym.Scancode == sdl.SCANCODE_F11 {
+			Logger.Println("full screen")
 			fullscreen := !sw.IsFullScreen()
-			sw.SetFullscreen(fullscreen)
+			err := sw.SetFullscreen(fullscreen)
+			if err != nil {
+				return err
+			}
+
 		} else if event.GetType() == sdl.KEYDOWN || event.GetType() == sdl.KEYUP {
 			code := event.(*sdl.KeyboardEvent).Keysym.Scancode
 			var state float32
@@ -163,8 +171,11 @@ func (sw *PlatformSdl) PumpEvents() {
 			}
 		} else if event.GetType() == sdl.QUIT {
 			sw.wantToExit = true
+			Logger.Println("quit wanted")
 		}
 	}
+
+	return nil
 }
 
 // ScreenSize returns the size of the screen
@@ -185,12 +196,27 @@ func (sw *PlatformSdl) SetFullscreen(fullscreen bool) error {
 		if err != nil {
 			return err
 		}
-		sw.window.SetDisplayMode(&mode)
-		sw.window.SetFullscreen(sdl.WINDOW_FULLSCREEN)
-		sdl.ShowCursor(sdl.DISABLE)
+		err = sw.window.SetDisplayMode(&mode)
+		if err != nil {
+			return err
+		}
+		err = sw.window.SetFullscreen(sdl.WINDOW_FULLSCREEN)
+		if err != nil {
+			return err
+		}
+		_, err = sdl.ShowCursor(sdl.DISABLE)
+		if err != nil {
+			return err
+		}
 	} else {
-		sw.window.SetFullscreen(sdl.WINDOW_FULLSCREEN)
-		sdl.ShowCursor(sdl.ENABLE)
+		err := sw.window.SetFullscreen(sdl.WINDOW_FULLSCREEN)
+		if err != nil {
+			return err
+		}
+		_, err = sdl.ShowCursor(sdl.ENABLE)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -203,15 +229,26 @@ func (sw *PlatformSdl) IsFullScreen() bool {
 
 func (sw *PlatformSdl) VideoInit() error {
 	var err error
-	sdl.GLSetAttribute(sdl.GL_CONTEXT_PROFILE_MASK, sdl.GL_CONTEXT_PROFILE_CORE)
-	sdl.GLSetAttribute(sdl.GL_CONTEXT_MAJOR_VERSION, 3)
-	sdl.GLSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 2)
+	err = sdl.GLSetAttribute(sdl.GL_CONTEXT_PROFILE_MASK, sdl.GL_CONTEXT_PROFILE_CORE)
+	if err != nil {
+		return err
+	}
+	err = sdl.GLSetAttribute(sdl.GL_CONTEXT_MAJOR_VERSION, 3)
+	if err != nil {
+		return err
+	}
+	err = sdl.GLSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 2)
+	if err != nil {
+		return err
+	}
 	GlContext, err = sw.window.GLCreateContext()
 	if err != nil {
 		return err
 	}
-	sdl.GLSetSwapInterval(1)
-	// return nil
+	err = sdl.GLSetSwapInterval(1)
+	if err != nil {
+		return err
+	}
 	Renderer, err = sdl.CreateRenderer(sw.window, -1, sdl.RENDERER_ACCELERATED)
 	if err != nil {
 		return err
@@ -225,22 +262,34 @@ func (sw *PlatformSdl) VideoCleanup() {
 	sdl.GLDeleteContext(GlContext)
 }
 
-func (sw *PlatformSdl) PrepareFrame() {
+func (sw *PlatformSdl) PrepareFrame() error {
 	if ScreenBufferSize.X != ScreenSize.X || ScreenBufferSize.Y != ScreenSize.Y {
 		if ScreenBuffer != nil {
-			ScreenBuffer.Destroy()
+			err := ScreenBuffer.Destroy()
+			if err != nil {
+				return err
+			}
 		}
 		ScreenBuffer, _ = Renderer.CreateTexture(sdl.PIXELFORMAT_ABGR8888, sdl.TEXTUREACCESS_STREAMING, ScreenSize.X, ScreenSize.Y)
 		ScreenBufferSize = ScreenSize
 	}
-	ScreenBuffer.Lock(ScreenBufferPixels)
+	_, _, err := ScreenBuffer.Lock(ScreenBufferPixels)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func (sw *PlatformSdl) EndFrame() {
+func (sw *PlatformSdl) EndFrame() error {
 	ScreenBufferPixels = nil
 	ScreenBuffer.Unlock()
-	Renderer.Copy(ScreenBuffer, nil, nil)
+	err := Renderer.Copy(ScreenBuffer, nil, nil)
+	if err != nil {
+		return err
+	}
 	Renderer.Present()
+
+	return nil
 }
 
 func (sw *PlatformSdl) GetScreenBuffer() *sdl.Rect {
