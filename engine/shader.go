@@ -1,14 +1,14 @@
 package engine
 
 import (
-	"fmt"
-
+	"unsafe"
 	gl "github.com/chsc/gogl/gl33"
 )
 
 const (
 	// main shaders
 	vertexShaderSource = `
+	    #version 330
 		attribute vec3 pos;
 		attribute vec2 uv;
 		attribute vec4 color;
@@ -36,6 +36,7 @@ const (
 	`
 
 	fragmentShaderSource = `
+	    #version 330
 		varying vec4 v_color;
 		varying vec2 v_uv;
 		uniform sampler2D texture;
@@ -54,37 +55,43 @@ const (
 
 func createProgram(vsSource string, fsSource string) gl.Uint {
 	// VERTEX SHADER
-	vs := gl.CreateShader(gl.VERTEX_SHADER)
-	vs_source := gl.GLString(vsSource)
-	gl.ShaderSource(vs, 1, &vs_source, nil)
-	gl.CompileShader(vs)
-	var vs_status gl.Int
-	gl.GetShaderiv(vs, gl.COMPILE_STATUS, &vs_status)
-	fmt.Printf("Compiled Vertex Shader: %v\n", vs_status)
-
-	// FRAGMENT SHADER
-	fs := gl.CreateShader(gl.FRAGMENT_SHADER)
-	fs_source := gl.GLString(fsSource)
-	gl.ShaderSource(fs, 1, &fs_source, nil)
-	gl.CompileShader(fs)
-	var fstatus gl.Int
-	gl.GetShaderiv(fs, gl.COMPILE_STATUS, &fstatus)
-	fmt.Printf("Compiled Fragment Shader: %v\n", fstatus)
+	vs := compileShader(gl.VERTEX_SHADER, vsSource)
+	fs := compileShader(gl.FRAGMENT_SHADER, fsSource)
 
 	// CREATE PROGRAM
 	program := gl.CreateProgram()
 	gl.AttachShader(program, vs)
 	gl.AttachShader(program, fs)
-	fragoutstring := gl.GLString("outColor")
-	defer gl.GLStringFree(fragoutstring)
-	gl.BindFragDataLocation(program, gl.Uint(0), fragoutstring)
-
 	gl.LinkProgram(program)
-	var linkstatus gl.Int
-	gl.GetProgramiv(program, gl.LINK_STATUS, &linkstatus)
-	fmt.Printf("Program Link: %v\n", linkstatus)
+	gl.UseProgram(program)
+	// fragoutstring := gl.GLString("outColor")
+	// defer gl.GLStringFree(fragoutstring)
+	// gl.BindFragDataLocation(program, gl.Uint(0), fragoutstring)
+
+	// var linkstatus gl.Int
+	// gl.GetProgramiv(program, gl.LINK_STATUS, &linkstatus)
+	// fmt.Printf("Program Link: %v\n", linkstatus)
 
 	return program
+}
+
+func compileShader(shaderType int, source string) gl.Uint{
+	shader := gl.CreateShader(gl.Enum(shaderType))
+    ssource := gl.GLString(source)
+	gl.ShaderSource(shader, 1, &ssource, nil)
+	gl.CompileShader(shader)
+
+	var success gl.Int
+	gl.GetShaderiv(shader, gl.COMPILE_STATUS, &success)
+	if success != 1 {
+	var logLength gl.Int 
+		gl.GetShaderiv(shader, gl.INFO_LOG_LENGTH, &logLength)
+		var log string
+		gl.GetShaderInfoLog(shader, gl.Sizei(logLength), nil, gl.GLString(log))
+		Logger.Printf("Compiled Shader %d: %v\n", shaderType, success)
+	}
+
+	return shader
 }
 
 type uniform struct {
@@ -121,7 +128,6 @@ type ProgramGame struct {
 func ShaderGameInit() *ProgramGame {
 	p := &ProgramGame{}
 	p.program = createProgram(vertexShaderSource, fragmentShaderSource)
-	gl.UseProgram(p.program)
 
 	p.uniform.view = gl.Uint(gl.GetUniformLocation(p.program, gl.GLString("view")))
 	p.uniform.model = gl.Uint(gl.GetUniformLocation(p.program, gl.GLString("model")))
@@ -141,6 +147,16 @@ func ShaderGameInit() *ProgramGame {
 	gl.EnableVertexAttribArray(p.attribute.pos)
 	gl.EnableVertexAttribArray(p.attribute.uv)
 	gl.EnableVertexAttribArray(p.attribute.color)
+
+	// glVertexAttribPointer( s->attribute.pos, 
+	//  sizeof(((vertex_t *)0)->pos)/sizeof(float), 
+	//  0x1406, 
+	//  0, 
+	//  sizeof(vertex_t), 
+	//  (GLvoid*)(__builtin_offsetof (vertex_t, pos) + 0) )
+	gl.VertexAttribPointer(p.attribute.pos, 3, gl.FLOAT, gl.FALSE, gl.Sizei(unsafe.Sizeof(Vertex{})), gl.Pointer(uintptr(unsafe.Offsetof(Vertex{}.Pos))))
+	gl.VertexAttribPointer(p.attribute.uv, 2, gl.FLOAT, gl.FALSE, gl.Sizei(unsafe.Sizeof(Vertex{})), gl.Pointer(uintptr(unsafe.Offsetof(Vertex{}.UV))))
+	gl.VertexAttribPointer(p.attribute.color, 4, gl.UNSIGNED_BYTE, gl.FALSE, gl.Sizei(unsafe.Sizeof(Vertex{})), gl.Pointer(uintptr(unsafe.Offsetof(Vertex{}.Color))))
 
 	return p
 }
@@ -257,9 +273,12 @@ func ShaderPostEffectGeneralInit(p *ProgramPostEffect) {
 
 	gl.EnableVertexAttribArray(p.attribute.pos)
 	gl.EnableVertexAttribArray(p.attribute.uv)
+
+	gl.VertexAttribPointer(p.attribute.pos, 3, gl.FLOAT, gl.FALSE, gl.Sizei(unsafe.Sizeof(Vertex{})), gl.Pointer(uintptr(unsafe.Offsetof(Vertex{}.Pos))))
+	gl.VertexAttribPointer(p.attribute.uv, 2, gl.FLOAT, gl.FALSE, gl.Sizei(unsafe.Sizeof(Vertex{})), gl.Pointer(uintptr(unsafe.Offsetof(Vertex{}.UV))))
 }
 
-func ShaderPostEffectDefaultIni() *ProgramPostEffect {
+func ShaderPostEffectDefaultInit() *ProgramPostEffect {
 	p := &ProgramPostEffect{}
 	p.program = createProgram(postEffectVertexShaderSource, postEffectFragmentShaderSourceDefault)
 	ShaderPostEffectGeneralInit(p)
