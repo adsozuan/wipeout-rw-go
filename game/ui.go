@@ -196,6 +196,30 @@ var charSet [UITextSizeMax]CharSet = [UITextSizeMax]CharSet{
 	},
 }
 
+func (ui *UI) ScaledPos(anchor UIPos, offset engine.Vec2i) engine.Vec2i {
+	var pos engine.Vec2i
+	screenSize := ui.render.Size() 
+
+	if anchor&UIPosLeft != 0 {
+		pos.X = offset.X * int32(ui.scale)
+	} else if anchor&UIPosCenter != 0 {
+		pos.X = (screenSize.X >> 1) + offset.X * int32(ui.scale)
+	} else if anchor&UIPosRight != 0 {
+		pos.X = screenSize.X + offset.X * int32(ui.scale)
+	}
+
+	if anchor&UIPosTop != 0 {
+		pos.Y = offset.Y * int32(ui.scale)
+	} else if anchor&UIPosMiddle != 0 {
+		pos.Y = (screenSize.Y >> 1) + offset.Y * int32(ui.scale)
+	} else if anchor&UIPosBottom != 0 {
+		pos.Y = screenSize.Y + offset.Y * int32(ui.scale)
+	}
+
+	return pos
+	
+}
+
 type cmpT struct {
 	Len     uint32
 	Entries []*uint8
