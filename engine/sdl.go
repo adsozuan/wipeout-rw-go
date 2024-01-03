@@ -1,16 +1,18 @@
 package engine
 
 import (
+	"log"
+	"os"
 	"github.com/veandco/go-sdl2/sdl"
 )
+
+var Logger *log.Logger
 
 const (
 	PLATFORM_WINDOW_FLAGS = sdl.WINDOW_OPENGL
 )
 
 var (
-	GlContext          sdl.GLContext
-	Renderer           *sdl.Renderer
 	ScreenBuffer       *sdl.Texture
 	ScreenBufferPixels *sdl.Rect
 	ScreenBufferPitch  int32
@@ -59,6 +61,7 @@ func (sw *PlatformSdl) ExitWanted() bool {
 
 type PlatformSdl struct {
 	window     *sdl.Window
+	glContext  sdl.GLContext
 	gamepad    *sdl.GameController
 	perfFreq   uint64
 	wantToExit bool
@@ -67,9 +70,10 @@ type PlatformSdl struct {
 // NewPlatformSdl creates a window
 func NewPlatformSdl(title string, x, y, w, h int32) (*PlatformSdl, error) {
 
+	Logger = log.New(os.Stderr, "engine |", log.Ldate|log.Ltime)
 	window, err := sdl.CreateWindow("Wipeout",
 		sdl.WINDOWPOS_CENTERED, sdl.WINDOWPOS_CENTERED,
-		w, h, sdl.WINDOW_SHOWN|sdl.WINDOW_OPENGL)
+		w, h, sdl.WINDOW_SHOWN | sdl.WINDOW_RESIZABLE | PLATFORM_WINDOW_FLAGS |sdl.WINDOW_ALLOW_HIGHDPI)
 	if err != nil {
 		return nil, err
 	}
@@ -229,27 +233,24 @@ func (sw *PlatformSdl) IsFullScreen() bool {
 
 func (sw *PlatformSdl) VideoInit() error {
 	var err error
-	err = sdl.GLSetAttribute(sdl.GL_CONTEXT_PROFILE_MASK, sdl.GL_CONTEXT_PROFILE_CORE)
-	if err != nil {
-		return err
-	}
-	err = sdl.GLSetAttribute(sdl.GL_CONTEXT_MAJOR_VERSION, 3)
-	if err != nil {
-		return err
-	}
-	err = sdl.GLSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 2)
-	if err != nil {
-		return err
-	}
-	GlContext, err = sw.window.GLCreateContext()
+	// err = sdl.GLSetAttribute(sdl.GL_CONTEXT_PROFILE_MASK, sdl.GL_CONTEXT_PROFILE_CORE)
+	// if err != nil {
+	// 	return err
+	// }
+	// err = sdl.GLSetAttribute(sdl.GL_CONTEXT_MAJOR_VERSION, 3)
+	// if err != nil {
+	// 	return err
+	// }
+	// err = sdl.GLSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 3)
+	// if err != nil {
+	// 	return err
+	// }
+	sw.glContext, err = sw.window.GLCreateContext()
+	Logger.Printf("GlContext=%v", sw.glContext)
 	if err != nil {
 		return err
 	}
 	err = sdl.GLSetSwapInterval(1)
-	if err != nil {
-		return err
-	}
-	Renderer, err = sdl.CreateRenderer(sw.window, -1, sdl.RENDERER_ACCELERATED)
 	if err != nil {
 		return err
 	}
@@ -259,35 +260,36 @@ func (sw *PlatformSdl) VideoInit() error {
 }
 
 func (sw *PlatformSdl) VideoCleanup() {
-	sdl.GLDeleteContext(GlContext)
+	sdl.GLDeleteContext(sw.glContext)
 }
 
 func (sw *PlatformSdl) PrepareFrame() error {
-	if ScreenBufferSize.X != ScreenSize.X || ScreenBufferSize.Y != ScreenSize.Y {
-		if ScreenBuffer != nil {
-			err := ScreenBuffer.Destroy()
-			if err != nil {
-				return err
-			}
-		}
-		ScreenBuffer, _ = Renderer.CreateTexture(sdl.PIXELFORMAT_ABGR8888, sdl.TEXTUREACCESS_STREAMING, ScreenSize.X, ScreenSize.Y)
-		ScreenBufferSize = ScreenSize
-	}
-	_, _, err := ScreenBuffer.Lock(ScreenBufferPixels)
-	if err != nil {
-		return err
-	}
+	// if ScreenBufferSize.X != ScreenSize.X || ScreenBufferSize.Y != ScreenSize.Y {
+	// 	if ScreenBuffer != nil {
+	// 		err := ScreenBuffer.Destroy()
+	// 		if err != nil {
+	// 			return err
+	// 		}
+	// 	}
+	// 	ScreenBuffer, _ = Renderer.CreateTexture(sdl.PIXELFORMAT_ABGR8888, sdl.TEXTUREACCESS_STREAMING, ScreenSize.X, ScreenSize.Y)
+	// 	ScreenBufferSize = ScreenSize
+	// }
+	// _, _, err := ScreenBuffer.Lock(ScreenBufferPixels)
+	// if err != nil {
+	// 	return err
+	// }
 	return nil
 }
 
 func (sw *PlatformSdl) EndFrame() error {
-	ScreenBufferPixels = nil
-	ScreenBuffer.Unlock()
-	err := Renderer.Copy(ScreenBuffer, nil, nil)
-	if err != nil {
-		return err
-	}
-	Renderer.Present()
+	// ScreenBufferPixels = nil
+	// ScreenBuffer.Unlock()
+	// err := Renderer.Copy(ScreenBuffer, nil, nil)
+	// if err != nil {
+	// 	return err
+	// }
+	// Renderer.Present()
+	sw.window.GLSwap()
 
 	return nil
 }

@@ -1,9 +1,7 @@
 package engine
 
 import (
-	"log"
 	"math"
-	"os"
 )
 
 const (
@@ -12,7 +10,6 @@ const (
 	SystemWindowHeight = 240
 )
 
-var Logger *log.Logger
 
 // System is the main system of the game
 type System struct {
@@ -26,7 +23,6 @@ type System struct {
 }
 
 func NewSystem(platform *PlatformSdl) *System {
-	Logger = log.New(os.Stderr, "engine |", log.Ldate|log.Ltime)
 	Logger.Printf("Init")
 	InputInit()
 
