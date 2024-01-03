@@ -2,8 +2,12 @@ package wipeout
 
 import (
 	"errors"
+	"fmt"
+	"strconv"
 
 	"github.com/adsozuan/wipeout-rw-go/engine"
+
+	gl "github.com/chsc/gogl/gl33"
 )
 
 type UITextSize int
@@ -93,37 +97,103 @@ func (ui *UI) Load() error {
 	return nil
 }
 
-func (ui *UI) GetUiScale() int {
+func (ui *UI) GetScale() int {
 	return ui.scale
 }
 
-func (ui *UI) SetUiScale(scale int) {
+func (ui *UI) SetScale(scale int) {
 	ui.scale = scale
 }
 
+func (ui *UI) Scaled(size engine.Vec2i) engine.Vec2i {
+	return engine.Vec2i{X: size.X * int32(ui.scale), Y: size.Y * int32(ui.scale)}
+}
+
+func (ui *UI) ScaledScreen() engine.Vec2i  {
+	return engine.Vec2iMulF(ui.render.Size(), gl.Float(ui.scale))
+}
+
+func (ui *UI) ScaledPos(anchor UIPos, offset engine.Vec2i) engine.Vec2i {
+	var pos engine.Vec2i
+	screenSize := ui.render.Size() 
+
+	if anchor&UIPosLeft != 0 {
+		pos.X = offset.X * int32(ui.scale)
+	} else if anchor&UIPosCenter != 0 {
+		pos.X = (screenSize.X >> 1) + offset.X * int32(ui.scale)
+	} else if anchor&UIPosRight != 0 {
+		pos.X = screenSize.X + offset.X * int32(ui.scale)
+	}
+
+	if anchor&UIPosTop != 0 {
+		pos.Y = offset.Y * int32(ui.scale)
+	} else if anchor&UIPosMiddle != 0 {
+		pos.Y = (screenSize.Y >> 1) + offset.Y * int32(ui.scale)
+	} else if anchor&UIPosBottom != 0 {
+		pos.Y = screenSize.Y + offset.Y * int32(ui.scale)
+	}
+
+	return pos
+}
+
+func charToGlyphIndex(c rune) int {
+    if c >= '0' && c <= '9' {
+        return int(c - '0' + 26)
+    }
+    return int(c - 'A')
+}
+
+func charWidth(c rune, size UITextSize) int  {
+	if c == ' ' {
+		return 8
+	}
+	return int(charSet[size].Glyphs[charToGlyphIndex(c)].Width)
+}
+
+func textWidth(text string, size UITextSize) int  {
+	var width uint16 = 0
+	cs := &charSet[size]
+
+	for _, ch := range text {
+		if ch != ' '{
+			width += cs.Glyphs[charToGlyphIndex(ch)].Width
+		} else {
+			width += 8
+		}
+		
+	}
+
+	return int(width)
+}
+
+func numberWidth(num int, size UITextSize) int {
+    text := strconv.Itoa(num)
+    return textWidth(text, size)
+}
+
+func (ui *UI) DrawTime(time float32, pos engine.Vec2i, size UITextSize, color engine.RGBA) {
+    msec := int(time * 1000)
+    tenths := (msec / 100) % 10
+    secs := (msec / 1000) % 60
+    mins := msec / (60 * 1000)
+
+    textBuffer := fmt.Sprintf("%02d:%02d.%d", mins, secs, tenths)
+    ui.DrawText(textBuffer, pos, size, color)
+}
+
+func (ui *UI) DrawNumber(num int, pos engine.Vec2i, size UITextSize, color engine.RGBA) {
+    textBuffer := strconv.Itoa(num)
+    ui.DrawText(textBuffer, pos, size, color)
+}
+	
+
 // DrawTextCentered renders centered text on the UI.
 func (ui *UI) DrawTextCentered(text string, pos engine.Vec2i, size UITextSize, color engine.RGBA) {
-	textWidth := ui.textWidth(text, size) * ui.scale
+	textWidth := textWidth(text, size) * ui.scale
 	pos.X -= int32(textWidth >> 1)
 	ui.DrawText(text, pos, size, color)
 }
 
-// textWidth calculates the width of the text.
-func (ui *UI) textWidth(text string, size UITextSize) int {
-	cs := charSet[size]
-	width := 0
-
-	for _, char := range text {
-		if char != ' ' {
-			glyph := &cs.Glyphs[ui.charToGlyphIndex(char)]
-			width += int(glyph.Width) * ui.scale
-		} else {
-			width += 8 * ui.scale
-		}
-	}
-
-	return width
-}
 
 // DrawText renders text on the UI.
 func (ui *UI) DrawText(text string, pos engine.Vec2i, size UITextSize, color engine.RGBA) {
@@ -140,7 +210,6 @@ func (ui *UI) DrawText(text string, pos engine.Vec2i, size UITextSize, color eng
 			pos.X += int32(8 * ui.scale)
 		}
 	}
-
 }
 
 func (ui *UI) DrawImage(pos engine.Vec2i, texture int) error {
@@ -158,9 +227,17 @@ func (ui *UI) DrawImage(pos engine.Vec2i, texture int) error {
 	return nil
 }
 
-func (ui *UI) Scaled(size engine.Vec2i) engine.Vec2i {
-	return engine.Vec2i{X: size.X * int32(ui.scale), Y: size.Y * int32(ui.scale)}
+func (ui *UI) DrawIcon(icon UIIconType, pos engine.Vec2i, color engine.RGBA) error  {
+	size, err := ui.render.TextureSize(int(ui.iconTextures[icon]))
+	if err != nil {
+		return err
+	}
+	scaledSize := ui.Scaled(size)
+	ui.render.Push2d(pos, scaledSize, color, int(ui.iconTextures[icon]))
+
+	return nil
 }
+
 
 // charToGlyphIndex converts a character to a glyph index.
 func (ui *UI) charToGlyphIndex(char rune) int {
@@ -206,28 +283,5 @@ var charSet [UITextSizeMax]CharSet = [UITextSizeMax]CharSet{
 	},
 }
 
-func (ui *UI) ScaledPos(anchor UIPos, offset engine.Vec2i) engine.Vec2i {
-	var pos engine.Vec2i
-	screenSize := ui.render.Size() 
-
-	if anchor&UIPosLeft != 0 {
-		pos.X = offset.X * int32(ui.scale)
-	} else if anchor&UIPosCenter != 0 {
-		pos.X = (screenSize.X >> 1) + offset.X * int32(ui.scale)
-	} else if anchor&UIPosRight != 0 {
-		pos.X = screenSize.X + offset.X * int32(ui.scale)
-	}
-
-	if anchor&UIPosTop != 0 {
-		pos.Y = offset.Y * int32(ui.scale)
-	} else if anchor&UIPosMiddle != 0 {
-		pos.Y = (screenSize.Y >> 1) + offset.Y * int32(ui.scale)
-	} else if anchor&UIPosBottom != 0 {
-		pos.Y = screenSize.Y + offset.Y * int32(ui.scale)
-	}
-
-	return pos
-	
-}
 
 
