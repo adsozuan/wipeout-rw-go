@@ -1,4 +1,4 @@
-package wipeout
+package game
 
 import (
 	"errors"
@@ -82,17 +82,17 @@ func NewUI(render *engine.Render) *UI {
 }
 
 func (ui *UI) Load() error {
-	tl, err := ImageGetCompressedTexture("wipeout/textures/drfonts.cmp", ui.render)
+	tl, err := ImageGetCompressedTexture("data/textures/drfonts.cmp", ui.render)
 	if err != nil {
-		return  errors.New("could not load font textures")
+		return errors.New("UI could not load font textures")
 	}
 	charSet[UITextSize16].Texture = uint16(TextureFromList(tl, 0))
 	charSet[UITextSize12].Texture = uint16(TextureFromList(tl, 1))
 	charSet[UITextSize8].Texture = uint16(TextureFromList(tl, 2))
-	ui.iconTextures[UIIconHand]= uint16(TextureFromList(tl, 3))
-	ui.iconTextures[UIIconConfirm]= uint16(TextureFromList(tl, 5))
-	ui.iconTextures[UIIconCancel]= uint16(TextureFromList(tl, 6))
-	ui.iconTextures[UIIconEnd]= uint16(TextureFromList(tl, 6))
+	ui.iconTextures[UIIconHand] = uint16(TextureFromList(tl, 3))
+	ui.iconTextures[UIIconConfirm] = uint16(TextureFromList(tl, 5))
+	ui.iconTextures[UIIconCancel] = uint16(TextureFromList(tl, 6))
+	ui.iconTextures[UIIconEnd] = uint16(TextureFromList(tl, 6))
 
 	return nil
 }
@@ -109,83 +109,82 @@ func (ui *UI) Scaled(size engine.Vec2i) engine.Vec2i {
 	return engine.Vec2i{X: size.X * int32(ui.scale), Y: size.Y * int32(ui.scale)}
 }
 
-func (ui *UI) ScaledScreen() engine.Vec2i  {
+func (ui *UI) ScaledScreen() engine.Vec2i {
 	return engine.Vec2iMulF(ui.render.Size(), gl.Float(ui.scale))
 }
 
 func (ui *UI) ScaledPos(anchor UIPos, offset engine.Vec2i) engine.Vec2i {
 	var pos engine.Vec2i
-	screenSize := ui.render.Size() 
+	screenSize := ui.render.Size()
 
 	if anchor&UIPosLeft != 0 {
 		pos.X = offset.X * int32(ui.scale)
 	} else if anchor&UIPosCenter != 0 {
-		pos.X = (screenSize.X >> 1) + offset.X * int32(ui.scale)
+		pos.X = (screenSize.X >> 1) + offset.X*int32(ui.scale)
 	} else if anchor&UIPosRight != 0 {
-		pos.X = screenSize.X + offset.X * int32(ui.scale)
+		pos.X = screenSize.X + offset.X*int32(ui.scale)
 	}
 
 	if anchor&UIPosTop != 0 {
 		pos.Y = offset.Y * int32(ui.scale)
 	} else if anchor&UIPosMiddle != 0 {
-		pos.Y = (screenSize.Y >> 1) + offset.Y * int32(ui.scale)
+		pos.Y = (screenSize.Y >> 1) + offset.Y*int32(ui.scale)
 	} else if anchor&UIPosBottom != 0 {
-		pos.Y = screenSize.Y + offset.Y * int32(ui.scale)
+		pos.Y = screenSize.Y + offset.Y*int32(ui.scale)
 	}
 
 	return pos
 }
 
 func charToGlyphIndex(c rune) int {
-    if c >= '0' && c <= '9' {
-        return int(c - '0' + 26)
-    }
-    return int(c - 'A')
+	if c >= '0' && c <= '9' {
+		return int(c - '0' + 26)
+	}
+	return int(c - 'A')
 }
 
-func charWidth(c rune, size UITextSize) int  {
+func charWidth(c rune, size UITextSize) int {
 	if c == ' ' {
 		return 8
 	}
 	return int(charSet[size].Glyphs[charToGlyphIndex(c)].Width)
 }
 
-func textWidth(text string, size UITextSize) int  {
+func textWidth(text string, size UITextSize) int {
 	var width uint16 = 0
 	cs := &charSet[size]
 
 	for _, ch := range text {
-		if ch != ' '{
+		if ch != ' ' {
 			width += cs.Glyphs[charToGlyphIndex(ch)].Width
 		} else {
 			width += 8
 		}
-		
+
 	}
 
 	return int(width)
 }
 
 func numberWidth(num int, size UITextSize) int {
-    text := strconv.Itoa(num)
-    return textWidth(text, size)
+	text := strconv.Itoa(num)
+	return textWidth(text, size)
 }
 
 func (ui *UI) DrawTime(time float32, pos engine.Vec2i, size UITextSize, color engine.RGBA) {
-    msec := int(time * 1000)
-    tenths := (msec / 100) % 10
-    secs := (msec / 1000) % 60
-    mins := msec / (60 * 1000)
+	msec := int(time * 1000)
+	tenths := (msec / 100) % 10
+	secs := (msec / 1000) % 60
+	mins := msec / (60 * 1000)
 
-    textBuffer := fmt.Sprintf("%02d:%02d.%d", mins, secs, tenths)
-    ui.DrawText(textBuffer, pos, size, color)
+	textBuffer := fmt.Sprintf("%02d:%02d.%d", mins, secs, tenths)
+	ui.DrawText(textBuffer, pos, size, color)
 }
 
 func (ui *UI) DrawNumber(num int, pos engine.Vec2i, size UITextSize, color engine.RGBA) {
-    textBuffer := strconv.Itoa(num)
-    ui.DrawText(textBuffer, pos, size, color)
+	textBuffer := strconv.Itoa(num)
+	ui.DrawText(textBuffer, pos, size, color)
 }
-	
 
 // DrawTextCentered renders centered text on the UI.
 func (ui *UI) DrawTextCentered(text string, pos engine.Vec2i, size UITextSize, color engine.RGBA) {
@@ -193,7 +192,6 @@ func (ui *UI) DrawTextCentered(text string, pos engine.Vec2i, size UITextSize, c
 	pos.X -= int32(textWidth >> 1)
 	ui.DrawText(text, pos, size, color)
 }
-
 
 // DrawText renders text on the UI.
 func (ui *UI) DrawText(text string, pos engine.Vec2i, size UITextSize, color engine.RGBA) {
@@ -227,7 +225,7 @@ func (ui *UI) DrawImage(pos engine.Vec2i, texture int) error {
 	return nil
 }
 
-func (ui *UI) DrawIcon(icon UIIconType, pos engine.Vec2i, color engine.RGBA) error  {
+func (ui *UI) DrawIcon(icon UIIconType, pos engine.Vec2i, color engine.RGBA) error {
 	size, err := ui.render.TextureSize(int(ui.iconTextures[icon]))
 	if err != nil {
 		return err
@@ -237,7 +235,6 @@ func (ui *UI) DrawIcon(icon UIIconType, pos engine.Vec2i, color engine.RGBA) err
 
 	return nil
 }
-
 
 // charToGlyphIndex converts a character to a glyph index.
 func (ui *UI) charToGlyphIndex(char rune) int {
@@ -282,6 +279,3 @@ var charSet [UITextSizeMax]CharSet = [UITextSizeMax]CharSet{
 		},
 	},
 }
-
-
-

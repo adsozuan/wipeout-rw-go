@@ -1,8 +1,8 @@
-package wipeout
+package game
 
 import "github.com/adsozuan/wipeout-rw-go/engine"
 
-type Title struct {
+type TitleScene struct {
 	titleImage      uint16
 	startTime       float32
 	hasShownAttract bool
@@ -10,13 +10,9 @@ type Title struct {
 	ui              *UI
 }
 
-func NewTitle(startTime float32, render *engine.Render) *Title {
+func NewTitle(startTime float32, render *engine.Render) *TitleScene {
 
-	t := ImageGetTexture("data/textures/wiptitle.tim")
-	Logger.Printf("Title texture index: %d", t)
-
-	return &Title{
-		titleImage:      t,
+	return &TitleScene{
 		startTime:       startTime,
 		render:          render,
 		hasShownAttract: false,
@@ -24,13 +20,21 @@ func NewTitle(startTime float32, render *engine.Render) *Title {
 	}
 }
 
-func (t *Title) Update() error {
+
+func (t *TitleScene) Init() error {
+	texture := ImageGetTexture("data/textures/wiptitle.tim")
+	t.titleImage = texture
+
+	return nil
+}
+
+func (t *TitleScene) Update() error {
 	t.render.SetView2d()
 	err := t.render.Push2d(engine.NewVec2i(0, 0), t.render.Size(), engine.NewRGBA(128, 128, 128, 25), int(t.titleImage))
 	if err != nil {
 		return err
 	}
-	t.ui.DrawText("PRESS ENTER", t.ui.ScaledPos(UIPosBottom | UIPosCenter, engine.NewVec2i(0, -40)), UITextSize16, UIColorDefault)
+	t.ui.DrawText("PRESS ENTER", t.ui.ScaledPos(UIPosBottom|UIPosCenter, engine.NewVec2i(0, -40)), UITextSize16, UIColorDefault)
 	// t.ui.DrawImage(engine.NewVec2i(0, 0), int(t.titleImage))
 
 	return nil

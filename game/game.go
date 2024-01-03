@@ -1,4 +1,4 @@
-package wipeout
+package game
 
 import (
 	"log"
@@ -44,10 +44,10 @@ const (
 	AMenuQuit
 )
 
-type GameScene int
+type GameSceneE int
 
 const (
-	GameSceneIntro GameScene = iota
+	GameSceneIntro GameSceneE = iota
 	GameSceneTitle
 	GameSceneMainMenu
 	GameSceneHighscores
@@ -205,64 +205,138 @@ type MusicTrack struct {
 }
 
 type PilotPoints struct {
-    Pilot  uint16
-    Points uint16
+	Pilot  uint16
+	Points uint16
+}
+
+type Init func()
+type Update func()
+
+type GameScene interface {
+	Init() error
+	Update() error
 }
 
 type Game struct {
-    FrameTime          float32
-    FrameRate          float32
+	FrameTime float64
+	FrameRate float64
 
-    RaceClass          int
-    RaceType           int
-    HighscoreTab       int
-    Team               int
-    Pilot              int
-    Circuit            int
-    IsAttractMode      bool
-    ShowCredits        bool
+	RaceClass     int
+	RaceType      int
+	HighscoreTab  int
+	Team          int
+	Pilot         int
+	Circuit       int
+	IsAttractMode bool
+	ShowCredits   bool
 
-    IsNewLapRecord     bool
-    IsNewRaceRecord    bool
-    BestLap            float32
-    RaceTime           float32
-    Lives              int
-    RacePosition       int
+	IsNewLapRecord  bool
+	IsNewRaceRecord bool
+	BestLap         float32
+	RaceTime        float32
+	Lives           int
+	RacePosition    int
 
-    LapTimes           [NumPilots][NumLaps]float32
-    RaceRanks          [NumPilots]PilotPoints
-    ChampionshipRanks  [NumPilots]PilotPoints
+	LapTimes          [NumPilots][NumLaps]float32
+	RaceRanks         [NumPilots]PilotPoints
+	ChampionshipRanks [NumPilots]PilotPoints
 
-	CurrentScene GameScene
-	NextScene GameScene
+	CurrentScene GameSceneE
+	NextScene    GameSceneE
+
+	GameScenes map[GameSceneE]GameScene
 
 	GlobalTextureLen int
 
 	// TODO add camera droid ship and track
 
-	render engine.Render
-	platform engine.PlatformSdl
-	ui UI
-
+	render   *engine.Render
+	platform *engine.PlatformSdl
+	ui       *UI
 }
 
-func NewGame(render engine.Render, platform engine.PlatformSdl, ui UI) *Game  {
+func NewGame(render *engine.Render, platform *engine.PlatformSdl) (*Game, error) {
+	ui := NewUI(render)
+
 	return &Game{
-		render: render,
-		platform: platform,
-		ui: ui,
-		CurrentScene: GameSceneNone,
-		NextScene: GameSceneNone,
+		render:           render,
+		platform:         platform,
+		ui:               ui,
+		CurrentScene:     GameSceneNone,
+		NextScene:        GameSceneNone,
 		GlobalTextureLen: 0,
-	}
+	}, nil
 }
 
-func (g *Game) Init()  {
+func (g *Game) Init() error {
 	// TODO uncomment when save is ready
 	// g.platform.SetFullscreen(false)
 	// g.render.SetResolution()
 	// g.render.SetPostEffect()
 
-	g.ui.Load()
-	
+	err := g.ui.Load()
+	if err != nil {
+		return err
+	}
+
+	g.GlobalTextureLen = g.render.TexturesLen()
+	g.GameScenes = make(map[GameSceneE]GameScene)
+	// TODO replce by system start time
+	g.GameScenes[GameSceneTitle] = NewTitle(0, g.render)
+
+	return nil
+}
+
+func (g *Game) SetScene(scene GameSceneE) {
+	// TODO reset sfx
+	g.NextScene = scene
+}
+
+type ResetCycleTime bool
+
+func (g *Game) Update() ResetCycleTime {
+	frameStartTime := g.platform.Now()
+	resetCycleTime := false
+
+	sh := int(g.render.Size().Y)
+
+	var scale int
+	if sh >= 720 {
+		scale = sh / 360
+	} else {
+		scale = sh / 240
+	}
+	scale = max(1, scale)
+
+	// TODO save scale
+
+	g.ui.SetScale(scale)
+
+	if g.NextScene != GameSceneNone {
+		g.CurrentScene = g.NextScene
+		g.NextScene = GameSceneNone
+		g.render.TexturesReset(uint16(g.GlobalTextureLen))
+		// TODO system.ResetCycleTime()
+		resetCycleTime = true
+
+
+		if g.CurrentScene != GameSceneNone {
+			g.GameScenes[g.CurrentScene].Init()
+		}
+	}
+
+	if g.CurrentScene != GameSceneNone {
+		g.GameScenes[g.CurrentScene].Update()
+	}
+
+	// TODO handle save
+
+	now := g.platform.Now()
+	g.FrameTime = now - frameStartTime
+
+	if g.FrameTime > 0 {
+		g.FrameRate = g.FrameRate * 0.95 + 1.0/g.FrameTime * 0.05
+	}
+
+	return ResetCycleTime(resetCycleTime)
 }

@@ -232,6 +232,7 @@ func (sw *PlatformSdl) IsFullScreen() bool {
 }
 
 func (sw *PlatformSdl) VideoInit() error {
+	Logger.Printf("Video init")
 	var err error
 	// err = sdl.GLSetAttribute(sdl.GL_CONTEXT_PROFILE_MASK, sdl.GL_CONTEXT_PROFILE_CORE)
 	// if err != nil {

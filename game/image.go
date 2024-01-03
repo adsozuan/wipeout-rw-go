@@ -1,4 +1,4 @@
-package wipeout
+package game
 
 import (
 	"fmt"
@@ -134,7 +134,9 @@ func ImageGetTexture(name string) uint16 {
 }
 
 func ImageGetCompressedTexture(name string, render *engine.Render) (TextureList, error) {
-	cmp, err := imageLoadCompressed(name)
+	currentDir, _ := os.Getwd()
+	filePath := filepath.Join(currentDir, name)
+	cmp, err := imageLoadCompressed(filePath)
 	if err != nil {
 		return TextureList{}, err
 	}
@@ -187,13 +189,12 @@ func imageLoadCompressed(name string) (*cmpT, error) {
 	if err != nil {
 		return nil, err
 	}
-	
-	data := lzss.Decompress(compressedBytes)
+
+	decompressedBytes := lzss.Decompress(compressedBytes)
 
 	// Initialize variables
 	var p uint32
 	var decompressedSize int32
-	var decompressedBytesOffset uint32
 
 	// Read the number of entries (Len) from data
 	imageCount := engine.GetI32LE(compressedBytes, &p)
@@ -213,9 +214,11 @@ func imageLoadCompressed(name string) (*cmpT, error) {
 
 	// Iterate through the entries and store their pointers
 	for i := uint32(0); i < uint32(imageCount); i++ {
-		entries[i] = data[decompressedBytesOffset:offset]
+		entries[i] = decompressedBytes[offset:]
 		offset += engine.GetI32LE(compressedBytes, &p)
 	}
+
+	cmp.Entries = entries
 
 	// Create and return the cmpT struct
 	return &cmp, nil

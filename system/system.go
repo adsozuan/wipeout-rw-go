@@ -1,15 +1,21 @@
-package engine
+package system
 
 import (
+	"log"
 	"math"
+	"os"
+
+	"github.com/adsozuan/wipeout-rw-go/engine"
+	"github.com/adsozuan/wipeout-rw-go/game"
 )
 
 const (
-	SystemWindowName   = "Wipeout"
-	SystemWindowWidth  = 320
-	SystemWindowHeight = 240
+	WindowName   = "Wipeout"
+	WindowWidth  = 320
+	WindowHeight = 240
 )
 
+var Logger *log.Logger
 
 // System is the main system of the game
 type System struct {
@@ -18,16 +24,25 @@ type System struct {
 	timeScale  float64
 	tickLast   float64
 	cycleTime  float64
-	platform   *PlatformSdl
-	Render     *Render
+	platform   *engine.PlatformSdl
+	Render     *engine.Render
+	Game       *game.Game
 }
 
-func NewSystem(platform *PlatformSdl) *System {
-	Logger.Printf("Init")
-	InputInit()
+func New(platform *engine.PlatformSdl) (*System, error) {
 
-	r := NewRender()
+	Logger = log.New(os.Stderr, "system |", log.Ldate|log.Ltime)
+	Logger.Printf("Init")
+
+	engine.InputInit()
+
+	r := engine.NewRender()
 	r.Init(platform.GetScreenSize())
+
+	g, err := game.NewGame(r, platform)
+	if err != nil {
+		return nil, err
+	}
 
 	return &System{
 		timeReal:   platform.Now(),
@@ -37,12 +52,13 @@ func NewSystem(platform *PlatformSdl) *System {
 		cycleTime:  0.0,
 		platform:   platform,
 		Render:     r,
-	}
+		Game: g,
+	}, err
 }
 
 func (s *System) Cleanup() {
 	s.Render.Cleanup()
-	InputCleanUp()
+	engine.InputCleanUp()
 }
 
 func (s *System) Exit() {
@@ -63,10 +79,13 @@ func (s *System) Update() {
 	}
 	s.Render.FramePrepare()
 
-	// TODO: Update game logic here
+	resetCycleTime := s.Game.Update()
+	if resetCycleTime {
+		s.ResetCycleTime()
+	}
 
 	s.Render.FrameEnd(s.cycleTime)
-	InputClear()
+	engine.InputClear()
 }
 
 func (s *System) ResetCycleTime() {

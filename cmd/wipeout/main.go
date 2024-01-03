@@ -6,7 +6,7 @@ import (
 	"runtime"
 
 	"github.com/adsozuan/wipeout-rw-go/engine"
-	wipeout "github.com/adsozuan/wipeout-rw-go/game"
+	"github.com/adsozuan/wipeout-rw-go/system"
 
 	"github.com/veandco/go-sdl2/sdl"
 )
@@ -30,8 +30,8 @@ func run() error {
 	defer sdl.Quit()
 
 	var err error
-	platform, err := engine.NewPlatformSdl(engine.SystemWindowName, 0, 0,
-		engine.SystemWindowWidth, engine.SystemWindowHeight)
+	platform, err := engine.NewPlatformSdl(system.WindowName, 0, 0,
+		system.WindowWidth, system.WindowHeight)
 	if err != nil {
 		return err
 	}
@@ -43,10 +43,11 @@ func run() error {
 		return err
 	}
 
+	system, err := system.New(platform)
+	if err != nil {
+		return err
+	}
 
-	system := engine.NewSystem(platform)
-
-	title := wipeout.NewTitle(float32(system.Time()), system.Render)
 
 	for !platform.ExitWanted() {
 		err := platform.PumpEvents()
@@ -54,10 +55,6 @@ func run() error {
 			return err
 		}
 		err = platform.PrepareFrame()
-		if err != nil {
-			return err
-		}
-		err = title.Update()
 		if err != nil {
 			return err
 		}
