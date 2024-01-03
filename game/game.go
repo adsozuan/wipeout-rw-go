@@ -268,7 +268,7 @@ func NewGame(render *engine.Render, platform *engine.PlatformSdl) (*Game, error)
 	}, nil
 }
 
-func (g *Game) Init() error {
+func (g *Game) Init(startTime float64) error {
 	// TODO uncomment when save is ready
 	// g.platform.SetFullscreen(false)
 	// g.render.SetResolution()
@@ -280,9 +280,11 @@ func (g *Game) Init() error {
 	}
 
 	g.GlobalTextureLen = g.render.TexturesLen()
+
 	g.GameScenes = make(map[GameSceneE]GameScene)
-	// TODO replce by system start time
-	g.GameScenes[GameSceneTitle] = NewTitle(0, g.render)
+	g.GameScenes[GameSceneTitle] = NewTitle(startTime, g.render)
+
+	g.SetScene(GameSceneIntro)
 
 	return nil
 }

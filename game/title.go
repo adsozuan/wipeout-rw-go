@@ -4,13 +4,13 @@ import "github.com/adsozuan/wipeout-rw-go/engine"
 
 type TitleScene struct {
 	titleImage      uint16
-	startTime       float32
+	startTime       float64
 	hasShownAttract bool
 	render          *engine.Render
 	ui              *UI
 }
 
-func NewTitle(startTime float32, render *engine.Render) *TitleScene {
+func NewTitle(startTime float64, render *engine.Render) *TitleScene {
 
 	return &TitleScene{
 		startTime:       startTime,

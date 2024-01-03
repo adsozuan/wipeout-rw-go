@@ -44,7 +44,7 @@ func New(platform *engine.PlatformSdl) (*System, error) {
 		return nil, err
 	}
 
-	return &System{
+	s := &System{
 		timeReal:   platform.Now(),
 		timeScaled: 0.0,
 		timeScale:  1.0,
@@ -53,7 +53,11 @@ func New(platform *engine.PlatformSdl) (*System, error) {
 		platform:   platform,
 		Render:     r,
 		Game: g,
-	}, err
+	}
+
+	g.Init(s.Time())
+
+	return s, err
 }
 
 func (s *System) Cleanup() {
