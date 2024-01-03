@@ -30,9 +30,9 @@ type Vec3 struct {
 type Mat4 [16]gl.Float
 
 type Vertex struct {
-	Pos   Vec3
-	UV    Vec2
-	Color RGBA
+	Pos   Vec3  // 12
+	UV    Vec2  // 8
+	Color RGBA  // 4
 }
 
 type Tris struct {

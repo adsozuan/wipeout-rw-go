@@ -30,8 +30,8 @@ func (t *Title) Update() error {
 	if err != nil {
 		return err
 	}
-	//t.ui.DrawText("Wi", engine.NewVec2i(100, 100), UITextSize16, UIColorAccent)
-	t.ui.DrawImage(engine.NewVec2i(0, 0), int(t.titleImage))
+	t.ui.DrawText("PRESS ENTER", t.ui.ScaledPos(UIPosBottom | UIPosCenter, engine.NewVec2i(0, -40)), UITextSize16, UIColorDefault)
+	// t.ui.DrawImage(engine.NewVec2i(0, 0), int(t.titleImage))
 
 	return nil
 }

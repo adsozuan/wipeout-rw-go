@@ -7,9 +7,7 @@ import (
 
 	"github.com/adsozuan/wipeout-rw-go/engine"
 	wipeout "github.com/adsozuan/wipeout-rw-go/game"
-	gl "github.com/chsc/gogl/gl33"
 
-	//gl "github.com/chsc/gogl/gl33"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -26,6 +24,9 @@ func run() error {
 	if err := sdl.Init(sdl.INIT_VIDEO | sdl.INIT_AUDIO | sdl.INIT_JOYSTICK | sdl.INIT_GAMECONTROLLER); err != nil {
 		return err
 	}
+	// if err := sdl.Init(sdl.INIT_EVERYTHING); err != nil {
+	// 	return err
+	// }
 	defer sdl.Quit()
 
 	var err error
@@ -41,17 +42,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	if err = gl.Init(); err != nil {
-		panic(err)
-	}
 
-	gl.Viewport(0, 0, gl.Sizei(engine.SystemWindowWidth), gl.Sizei(engine.SystemWindowHeight))
-	// OPENGL FLAGS
-	gl.ClearColor(0.0, 0.1, 0.0, 1.0)
-	gl.Enable(gl.DEPTH_TEST)
-	gl.DepthFunc(gl.LESS)
-	gl.Enable(gl.BLEND)
-	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
 	system := engine.NewSystem(platform)
 
