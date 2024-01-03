@@ -118,6 +118,10 @@ func NewRender() *Render {
 }
 
 func (r *Render) Init(screenSize Vec2i) {
+	if err := gl.Init(); err != nil {
+		panic(err)
+	}
+
 	gl.GenTextures(1, &r.atlasTexture)
 	gl.BindTexture(gl.TEXTURE_2D, r.atlasTexture)
 	if RenderUseMipMaps {
@@ -136,13 +140,14 @@ func (r *Render) Init(screenSize Vec2i) {
 	tw := gl.Sizei(AtlasSize * AtlasGrid)
 	th := gl.Sizei(AtlasSize * AtlasGrid)
 	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, tw, th, 0, gl.RGBA, gl.UNSIGNED_BYTE, nil)
+	Logger.Printf("atlas texture %5d", r.atlasTexture)
 
 	// Tris buffer
 	gl.GenBuffers(1, &r.vbo)
 	gl.BindBuffer(gl.ARRAY_BUFFER, r.vbo)
 
 	// Post effect shaders
-	r.programPostEffects[RenderPostEffectNone] = ShaderPostEffectDefaultIni()
+	r.programPostEffects[RenderPostEffectNone] = ShaderPostEffectDefaultInit()
 	r.programPostEffects[RenderPostEffectCRT] = ShaderPostEffectCRTInit()
 	r.SetPostEffect(RenderPostEffectNone)
 
@@ -153,8 +158,7 @@ func (r *Render) Init(screenSize Vec2i) {
 	gl.BindVertexArray(prgGame.vao)
 
 	r.SetView(Vec3{0, 0, 0}, Vec3{0, 0, 0})
-	m := NewMat4Identity()
-	r.SetModelMat(&m)
+	r.SetModelMat(&Mat4Id)
 
 	gl.Enable(gl.CULL_FACE)
 	gl.Enable(gl.BLEND)
@@ -227,7 +231,7 @@ func (r *Render) SetResolution(res RenderResolution) {
 	gl.FramebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, r.backBufferDepthBuffer)
 	gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, r.backBufferTexture, 0)
 
-	gl.BindTexture(gl.RENDERBUFFER, r.backBufferDepthBuffer)
+	gl.BindRenderbuffer(gl.RENDERBUFFER, r.backBufferDepthBuffer)
 	gl.RenderbufferStorage(gl.RENDERBUFFER, RenderDepthBufferInternalFormat, gl.Sizei(r.backBufferSize.X), gl.Sizei(r.backBufferSize.Y))
 
 	r.projectionMat2d = r.Setup2dProjectionMat(r.backBufferSize)
@@ -271,8 +275,8 @@ func (r *Render) SetPostEffect(postEffect RenderPostEffect) error {
 
 func (r *Render) FramePrepare() {
 	gl.UseProgram(r.programGame.program)
-	gl.BindVertexArray(r.programGame.vao)
-	gl.BindBuffer(gl.FRAMEBUFFER, r.backBuffer)
+	gl.BindFramebuffer(gl.FRAMEBUFFER, r.backBuffer)
+	gl.Viewport(0, 0, gl.Sizei(r.backBufferSize.X), gl.Sizei(r.backBufferSize.Y))
 
 	gl.BindTexture(gl.TEXTURE_2D, r.atlasTexture)
 	gl.Uniform2f(gl.Int(r.programGame.uniform.screen), 0, 0)
@@ -288,7 +292,6 @@ func (r *Render) FrameEnd(cycleTime float64) {
 	r.Flush()
 
 	gl.UseProgram(r.programPostEffect.program)
-	gl.BindVertexArray(r.programPostEffect.vao)
 
 	gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
 	gl.Viewport(0, 0, gl.Sizei(r.screenSize.X), gl.Sizei(r.screenSize.Y))
@@ -322,6 +325,22 @@ func (r *Render) FrameEnd(cycleTime float64) {
 
 }
 
+func (r *Render) Flush() {
+	if r.trisLen == 0 {
+		return
+	}
+
+	if r.textureMipMapIsDirty {
+		gl.GenerateMipmap(gl.TEXTURE_2D)
+		r.textureMipMapIsDirty = false
+	}
+
+	gl.BindBuffer(gl.ARRAY_BUFFER, r.vbo)
+	gl.BufferData(gl.ARRAY_BUFFER, gl.Sizeiptr(r.trisLen*24), gl.Pointer(&trisBuffer[0]), gl.DYNAMIC_DRAW)
+	gl.DrawArrays(gl.TRIANGLES, gl.Int(0), gl.Sizei(r.trisLen*3))
+	r.trisLen = 0
+}
+
 func (r *Render) SetView(pos Vec3, angles Vec3) {
 	r.Flush()
 	r.SetDepthWrite(true)
@@ -341,22 +360,6 @@ func (r *Render) SetView(pos Vec3, angles Vec3) {
 	gl.Uniform2f(gl.Int(r.programGame.uniform.fade), gl.Float(RenderFadeOutNear), gl.Float(RenderFadeOutFar))
 }
 
-func (r *Render) Flush() {
-	if r.trisLen == 0 {
-		return
-	}
-
-	if r.textureMipMapIsDirty {
-		gl.GenerateMipmap(gl.TEXTURE_2D)
-		r.textureMipMapIsDirty = false
-	}
-
-	gl.BindBuffer(gl.ARRAY_BUFFER, r.vbo)
-	gl.BufferData(gl.ARRAY_BUFFER, gl.Sizeiptr(r.trisLen*24), gl.Pointer(&trisBuffer[0]), gl.DYNAMIC_DRAW)
-	gl.DrawArrays(gl.TRIANGLES, gl.Int(0), gl.Sizei(r.trisLen*3))
-	r.trisLen = 0
-}
-
 func (r *Render) SetModelMat(m *Mat4) {
 	r.Flush()
 
@@ -366,6 +369,11 @@ func (r *Render) SetModelMat(m *Mat4) {
 func (r *Render) SetView2d() {
 	r.SetDepthWrite(true)
 	r.SetDepthTest(false)
+
+	r.SetModelMat(&Mat4Id)
+	gl.Uniform3f((gl.Int(r.programGame.uniform.cameraPos)), gl.Float(0), gl.Float(0), gl.Float(0))
+	gl.UniformMatrix4fv(gl.Int(r.programGame.uniform.view), gl.Sizei(1), gl.GLBool(false), &Mat4Id[0])
+	gl.UniformMatrix4fv(gl.Int(r.programGame.uniform.projection), gl.Sizei(1), gl.GLBool(false), &r.projectionMat2d[0])
 }
 
 func (r *Render) SetDepthWrite(enable bool) {
@@ -509,21 +517,9 @@ func (r *Render) Push2dTitle(pos Vec2i, uvOffset Vec2i, uvSize Vec2i, size Vec2i
 	return nil
 }
 
-func (r *Render) TextureSize(textureIndex int) (Vec2i, error) {
-	if textureIndex >= r.texturesLen {
-		return Vec2i{}, fmt.Errorf("invalid texture index %d", textureIndex)
-	}
-
-	return r.textures[textureIndex].size, nil
-}
-
-func (r *Render) TexturesLen() int {
-	return r.texturesLen
-}
-
 func (r *Render) TextureCreate(tw int, th int, pixels []RGBA) (int, error) {
 	if r.texturesLen >= TextureMax {
-		return 0, fmt.Errorf("Texture max reached")
+		return 0, fmt.Errorf("texture max reached, wanted %d", r.texturesLen)
 	}
 
 	bw := tw + AtlasBorder*2
@@ -572,7 +568,7 @@ func (r *Render) TextureCreate(tw int, th int, pixels []RGBA) (int, error) {
 		// Top border
 		for y := 0; y < AtlasBorder; y++ {
 			for x := 0; x < bw; x++ {
-				pb[x+y*bw] = pixels[0] // TODO something wrong here
+				pb[x+y*bw+AtlasBorder] = pixels[0] // TODO something wrong here
 			}
 		}
 
@@ -603,6 +599,10 @@ func (r *Render) TextureCreate(tw int, th int, pixels []RGBA) (int, error) {
 				pb[(x+AtlasBorder)+(y+AtlasBorder)*bw] = pixels[x+y*tw]
 			}
 		}
+
+		for y := 0; y < th; y++ {
+			pb[bw*(y+AtlasBorder)+AtlasBorder] = pixels[tw*y]
+		}
 	}
 
 	x := gridX * AtlasGrid
@@ -621,6 +621,14 @@ func (r *Render) TextureCreate(tw int, th int, pixels []RGBA) (int, error) {
 	return textureIndex, nil
 }
 
+func (r *Render) TextureSize(textureIndex int) (Vec2i, error) {
+	if textureIndex >= r.texturesLen {
+		return Vec2i{}, fmt.Errorf("invalid texture index %d", textureIndex)
+	}
+
+	return r.textures[textureIndex].size, nil
+}
+
 func (r *Render) TextureReplacePixels(textureIndex uint16, pixels []RGBA) error {
 	if textureIndex >= uint16(r.texturesLen) {
 		return fmt.Errorf("invalid texture index %d", textureIndex)
@@ -631,6 +639,10 @@ func (r *Render) TextureReplacePixels(textureIndex uint16, pixels []RGBA) error 
 	gl.TexSubImage2D(gl.TEXTURE_2D, 0, gl.Int(t.offset.X), gl.Int(t.offset.Y), gl.Sizei(t.size.X), gl.Sizei(t.size.Y), gl.RGBA, gl.UNSIGNED_BYTE, gl.Pointer(&pixels[0]))
 
 	return nil
+}
+
+func (r *Render) TexturesLen() int {
+	return r.texturesLen
 }
 
 func (r *Render) TexturesReset(len uint16) error {
@@ -679,7 +691,7 @@ func (r *Render) TexturesDump(path string) error {
 	pixels := make([]RGBA, width*height)
 	gl.GetTexImage(gl.TEXTURE_2D, 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Pointer(&pixels[0]))
 
-	// TODO
+	// TODO write into png
 	return nil
 }
 
