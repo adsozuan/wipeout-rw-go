@@ -1,0 +1,14 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+        {
+            "label": "build wipeout",
+            "type": "shell",
+            "command": "go build -o ${workspaceFolder}/bin/wipeout ${workspaceFolder}/cmd/wipeout/main.go",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}
