@@ -1,8 +1,7 @@
 package wipeout
 
 import (
-	"encoding/binary"
-
+	"errors"
 
 	"github.com/adsozuan/wipeout-rw-go/engine"
 )
@@ -78,9 +77,20 @@ func NewUI(render *engine.Render) *UI {
 	}
 }
 
-func (ui *UI) Load() {
-	charSet[UITextSize16].Texture = uint16(TextureFromList())
+func (ui *UI) Load() error {
+	tl, err := ImageGetCompressedTexture("wipeout/textures/drfonts.cmp", ui.render)
+	if err != nil {
+		return  errors.New("could not load font textures")
+	}
+	charSet[UITextSize16].Texture = uint16(TextureFromList(tl, 0))
+	charSet[UITextSize12].Texture = uint16(TextureFromList(tl, 1))
+	charSet[UITextSize8].Texture = uint16(TextureFromList(tl, 2))
+	ui.iconTextures[UIIconHand]= uint16(TextureFromList(tl, 3))
+	ui.iconTextures[UIIconConfirm]= uint16(TextureFromList(tl, 5))
+	ui.iconTextures[UIIconCancel]= uint16(TextureFromList(tl, 6))
+	ui.iconTextures[UIIconEnd]= uint16(TextureFromList(tl, 6))
 
+	return nil
 }
 
 func (ui *UI) GetUiScale() int {

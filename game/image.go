@@ -1,8 +1,6 @@
 package wipeout
 
 import (
-	"bytes"
-	"encoding/binary"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -135,22 +133,23 @@ func ImageGetTexture(name string) uint16 {
 	return uint16(texture)
 }
 
-func ImageGetCompressedTexture(name string, textureLen int) (TextureList, error)  {
+func ImageGetCompressedTexture(name string, render *engine.Render) (TextureList, error) {
 	cmp, err := imageLoadCompressed(name)
 	if err != nil {
 		return TextureList{}, err
 	}
 	tl := TextureList{
-		start: textureLen,
-		len: int(cmp.Len),
+		start: render.TexturesLen(),
+		len:   int(cmp.Len),
 	}
 
 	for i := 0; i < int(cmp.Len); i++ {
-		var heigh, width int
 		image := ImageLoadFromBytes(cmp.Entries[i], false)
-		
+		render.TextureCreate(int(image.Width), int(image.Height), image.Pixels)
 	}
-	
+
+	return tl, nil
+
 }
 
 // tim16BitToRGBA converts a 16-bit TIM pixel to RGBA
@@ -180,7 +179,6 @@ type cmpT struct {
 	Entries [][]uint8
 }
 
-
 func imageLoadCompressed(name string) (*cmpT, error) {
 	Logger.Printf("load cmp %s\n", name)
 
@@ -189,30 +187,36 @@ func imageLoadCompressed(name string) (*cmpT, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	
 	data := lzss.Decompress(compressedBytes)
 
 	// Initialize variables
 	var p uint32
+	var decompressedSize int32
 	var decompressedBytesOffset uint32
 
 	// Read the number of entries (Len) from data
-	imageCount := binary.LittleEndian.Uint32(data[p:])
-	p += 4
+	imageCount := engine.GetI32LE(compressedBytes, &p)
 
-	// Create a slice to hold pointers to uint8
+	for i := 0; i < int(imageCount); i++ {
+		decompressedSize += engine.GetI32LE(compressedBytes, &p)
+	}
+
+	var cmp cmpT
+	cmp.Len = uint32(imageCount)
+
+	// Create a slice to hold bytes
 	entries := make([][]byte, imageCount)
 
+	p = 4
+	var offset int32 = 0
+
 	// Iterate through the entries and store their pointers
-	for i := uint32(0); i < imageCount; i++ {
-		offset := binary.LittleEndian.Uint32(data[p:])
-		entries[i] = data[decompressedBytesOffset+offset]
-		p += 4
+	for i := uint32(0); i < uint32(imageCount); i++ {
+		entries[i] = data[decompressedBytesOffset:offset]
+		offset += engine.GetI32LE(compressedBytes, &p)
 	}
 
 	// Create and return the cmpT struct
-	return &cmpT{
-		Len:     imageCount,
-		Entries: entries,
-	}, nil
+	return &cmp, nil
 }
