@@ -3,7 +3,6 @@ package wipeout
 import (
 	"encoding/binary"
 
-	"github.com/blacktop/lzss"
 
 	"github.com/adsozuan/wipeout-rw-go/engine"
 )
@@ -80,6 +79,7 @@ func NewUI(render *engine.Render) *UI {
 }
 
 func (ui *UI) Load() {
+	charSet[UITextSize16].Texture = uint16(TextureFromList())
 
 }
 
@@ -220,43 +220,4 @@ func (ui *UI) ScaledPos(anchor UIPos, offset engine.Vec2i) engine.Vec2i {
 	
 }
 
-type cmpT struct {
-	Len     uint32
-	Entries []*uint8
-}
 
-func imageLoadCompressed(name string) (*cmpT, error) {
-	Logger.Printf("load cmp %s\n", name)
-
-	// Load compressed bytes from the file
-	compressedBytes, err := engine.LoadBinaryFile(name)
-	if err != nil {
-		return nil, err
-	}
-
-	data := lzss.Decompress(compressedBytes)
-
-	// Initialize variables
-	var p uint32
-	var decompressedBytesOffset uint32
-
-	// Read the number of entries (Len) from data
-	imageCount := binary.LittleEndian.Uint32(data[p:])
-	p += 4
-
-	// Create a slice to hold pointers to uint8
-	entries := make([]*uint8, imageCount)
-
-	// Iterate through the entries and store their pointers
-	for i := uint32(0); i < imageCount; i++ {
-		offset := binary.LittleEndian.Uint32(data[p:])
-		entries[i] = &data[decompressedBytesOffset+offset]
-		p += 4
-	}
-
-	// Create and return the cmpT struct
-	return &cmpT{
-		Len:     imageCount,
-		Entries: entries,
-	}, nil
-}

@@ -1,12 +1,15 @@
 package wipeout
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"os"
 	"path/filepath"
 	"unsafe"
 
 	"github.com/adsozuan/wipeout-rw-go/engine"
+	"github.com/blacktop/lzss"
 )
 
 const (
@@ -132,6 +135,24 @@ func ImageGetTexture(name string) uint16 {
 	return uint16(texture)
 }
 
+func ImageGetCompressedTexture(name string, textureLen int) (TextureList, error)  {
+	cmp, err := imageLoadCompressed(name)
+	if err != nil {
+		return TextureList{}, err
+	}
+	tl := TextureList{
+		start: textureLen,
+		len: int(cmp.Len),
+	}
+
+	for i := 0; i < int(cmp.Len); i++ {
+		var heigh, width int
+		image := ImageLoadFromBytes(cmp.Entries[i], false)
+		
+	}
+	
+}
+
 // tim16BitToRGBA converts a 16-bit TIM pixel to RGBA
 func tim16BitToRGBA(value uint16, transparent bool) engine.RGBA {
 	r := uint8((value >> 11) & 0x1F)
@@ -144,4 +165,54 @@ func tim16BitToRGBA(value uint16, transparent bool) engine.RGBA {
 	}
 
 	return engine.RGBA{R: r, G: g, B: b, A: 0xFF}
+}
+
+func TextureFromList(tl TextureList, index int) int {
+	if index >= tl.len {
+		Logger.Printf("texture %d not in list of len %d", index, tl.len)
+	}
+
+	return tl.start + index
+}
+
+type cmpT struct {
+	Len     uint32
+	Entries [][]uint8
+}
+
+
+func imageLoadCompressed(name string) (*cmpT, error) {
+	Logger.Printf("load cmp %s\n", name)
+
+	// Load compressed bytes from the file
+	compressedBytes, err := engine.LoadBinaryFile(name)
+	if err != nil {
+		return nil, err
+	}
+
+	data := lzss.Decompress(compressedBytes)
+
+	// Initialize variables
+	var p uint32
+	var decompressedBytesOffset uint32
+
+	// Read the number of entries (Len) from data
+	imageCount := binary.LittleEndian.Uint32(data[p:])
+	p += 4
+
+	// Create a slice to hold pointers to uint8
+	entries := make([][]byte, imageCount)
+
+	// Iterate through the entries and store their pointers
+	for i := uint32(0); i < imageCount; i++ {
+		offset := binary.LittleEndian.Uint32(data[p:])
+		entries[i] = data[decompressedBytesOffset+offset]
+		p += 4
+	}
+
+	// Create and return the cmpT struct
+	return &cmpT{
+		Len:     imageCount,
+		Entries: entries,
+	}, nil
 }
