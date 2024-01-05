@@ -3,3 +3,6 @@
 .PHONY: build
 build:
 	go build -ldflags='-s' -o=./bin/wipeout.exe ./cmd/wipeout
+
+run:
+	./bin/wipeout.exe
