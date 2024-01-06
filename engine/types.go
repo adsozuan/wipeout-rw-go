@@ -40,10 +40,10 @@ type Tris struct {
 }
 
 type RGBA struct {
-	R, G, B, A uint8
+	R, G, B, A byte
 }
 
-func NewRGBA(r, g, b, a uint8) RGBA {
+func NewRGBA(r, g, b, a byte) RGBA {
 	return RGBA{
 		R: r,
 		G: g,
@@ -243,7 +243,7 @@ func Clamp[T Number](value, min, max T) T {
 }
 
 type Number interface {
-	uint | uint8 | uint16 | uint32 | uint64 | int | int8 | int16 | int32 | int64 | float32 | float64 | gl.Float
+	uint | byte | uint16 | uint32 | uint64 | int | int8 | int16 | int32 | int64 | float32 | float64 | gl.Float
 }
 
 func Mat4SetTranslation(mat *Mat4, pos Vec3) {

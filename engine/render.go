@@ -24,14 +24,14 @@ const (
 	RenderFadeOutFar  = 64000.0
 )
 
-type RenderBlendMode uint8
+type RenderBlendMode byte
 
 const (
 	RenderBlendModeNormal RenderBlendMode = iota
 	RenderBlendModeLighter
 )
 
-type RenderResolution uint8
+type RenderResolution byte
 
 const (
 	RenderResolutionNative RenderResolution = iota
@@ -39,7 +39,7 @@ const (
 	RenderResolution480p
 )
 
-type RenderPostEffect uint8
+type RenderPostEffect byte
 
 const (
 	RenderPostEffectNone RenderPostEffect = iota

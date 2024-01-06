@@ -311,8 +311,8 @@ var (
 	ActionsState    [INPUT_ACTION_MAX]float32
 	ActionsPressed  [INPUT_ACTION_MAX]bool
 	ActionsReleased [INPUT_ACTION_MAX]bool
-	ExpectedButton  [INPUT_ACTION_MAX]uint8
-	Bindings        [INPUT_LAYER_MAX][INPUT_BUTTON_MAX]uint8
+	ExpectedButton  [INPUT_ACTION_MAX]byte
+	Bindings        [INPUT_LAYER_MAX][INPUT_BUTTON_MAX]byte
 	CaptureCallback InputCaptureCallback
 	CaptureUser     interface{}
 	MouseX, MouseY  int32
@@ -369,7 +369,7 @@ func InputSetLayerButtonState(layer InputLayer, button Button, state float32) {
 	}
 
 	expected := ExpectedButton[action]
-	if expected == 0 || expected == uint8(button) {
+	if expected == 0 || expected == byte(button) {
 		if state > INPUT_DEADZONE {
 			state = state
 		} else {
@@ -378,7 +378,7 @@ func InputSetLayerButtonState(layer InputLayer, button Button, state float32) {
 
 		if state > 0 && ActionsState[action] == 0 {
 			ActionsPressed[action] = true
-			ExpectedButton[action] = uint8(button)
+			ExpectedButton[action] = byte(button)
 		} else if state == 0 && ActionsState[action] != 0 {
 			ActionsReleased[action] = true
 			ExpectedButton[action] = INPUT_BUTTON_NONE
@@ -402,7 +402,7 @@ func InputSetButtonState(button Button, state float32) {
 	}
 }
 
-func InputBind(layer InputLayer, button Button, action uint8) {
+func InputBind(layer InputLayer, button Button, action byte) {
 	if button < 0 || button >= INPUT_BUTTON_MAX || action < 0 || action >= INPUT_ACTION_MAX || layer < 0 || layer >= INPUT_LAYER_MAX {
 		return
 	}
@@ -410,7 +410,7 @@ func InputBind(layer InputLayer, button Button, action uint8) {
 	Bindings[layer][button] = action
 }
 
-func InputBoundToAction(button Button) uint8 {
+func InputBoundToAction(button Button) byte {
 	if button < 0 || button >= INPUT_BUTTON_MAX {
 		return 0
 	}
@@ -433,21 +433,21 @@ func InputUnbindAll(layer InputLayer) {
 	}
 }
 
-func InputState(action uint8) float32 {
+func InputState(action byte) float32 {
 	if action < 0 || action >= INPUT_ACTION_MAX {
 		return 0
 	}
 	return ActionsState[action]
 }
 
-func InputPressed(action uint8) bool {
+func InputPressed(action byte) bool {
 	if action < 0 || action >= INPUT_ACTION_MAX {
 		return false
 	}
 	return ActionsPressed[action]
 }
 
-func InputReleased(action uint8) bool {
+func InputReleased(action byte) bool {
 	if action < 0 || action >= INPUT_ACTION_MAX {
 		return false
 	}
