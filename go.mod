@@ -7,4 +7,4 @@ require (
 	github.com/veandco/go-sdl2 v0.4.35
 )
 
-require github.com/blacktop/lzss v0.1.1 // indirect
+require github.com/blacktop/lzss v0.1.1
