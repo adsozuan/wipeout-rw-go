@@ -24,9 +24,6 @@ func run() error {
 	if err := sdl.Init(sdl.INIT_VIDEO | sdl.INIT_AUDIO | sdl.INIT_JOYSTICK | sdl.INIT_GAMECONTROLLER); err != nil {
 		return err
 	}
-	// if err := sdl.Init(sdl.INIT_EVERYTHING); err != nil {
-	// 	return err
-	// }
 	defer sdl.Quit()
 
 	var err error

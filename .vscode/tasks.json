@@ -9,6 +9,15 @@
                 "kind": "build",
                 "isDefault": true
             }
+        },
+        {
+            "label": "build texture",
+            "type": "shell",
+            "command": "go build -o ${workspaceFolder}/bin/texture ${workspaceFolder}/cmd/texture/main.go",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
         }
     ]
 }

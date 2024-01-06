@@ -691,6 +691,13 @@ func (r *Render) TexturesDump(path string) error {
 	pixels := make([]RGBA, width*height)
 	gl.GetTexImage(gl.TEXTURE_2D, 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Pointer(&pixels[0]))
 
+	// surface, err := sdl.CreateRGBSurfaceFrom(pixels, int32(width), int32(height), 32, int32(width*4),
+    //     0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000)
+    // if err != nil {
+    //     Logger.Fatalf("Failed to create SDL surface: %s\n", err)
+    // }
+    // defer surface.Free()
+
 	// TODO write into png
 	return nil
 }

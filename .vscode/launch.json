@@ -13,6 +13,16 @@
             "program": "${workspaceFolder}/cmd/wipeout",
             "output": "${workspaceFolder}/bin/wipeout",
             "preLaunchTask": "build wipeout"
+        },
+
+        {
+            "name": "Run texture",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd/texture",
+            "output": "${workspaceFolder}/bin/texture",
+            "preLaunchTask": "build texture"
         }
     ]
 }

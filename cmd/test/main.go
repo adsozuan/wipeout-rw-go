@@ -231,6 +231,7 @@ var triangle_colours = []gl.Float{
 	0.673, 0.211, 0.457,
 	0.820, 0.883, 0.371,
 	0.982, 0.099, 0.879}
+	
 func createprogram() gl.Uint {
 	// VERTEX SHADER
 	vs := gl.CreateShader(gl.VERTEX_SHADER)

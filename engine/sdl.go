@@ -3,6 +3,7 @@ package engine
 import (
 	"log"
 	"os"
+
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -69,11 +70,15 @@ type PlatformSdl struct {
 
 // NewPlatformSdl creates a window
 func NewPlatformSdl(title string, x, y, w, h int32) (*PlatformSdl, error) {
-
 	Logger = log.New(os.Stderr, "engine |", log.Ldate|log.Ltime)
+
+	sdl.GLSetAttribute(sdl.GL_CONTEXT_MAJOR_VERSION, 3)
+    sdl.GLSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 3)
+    sdl.GLSetAttribute(sdl.GL_CONTEXT_PROFILE_MASK, sdl.GL_CONTEXT_PROFILE_CORE)
+
 	window, err := sdl.CreateWindow("Wipeout",
 		sdl.WINDOWPOS_CENTERED, sdl.WINDOWPOS_CENTERED,
-		w, h, sdl.WINDOW_SHOWN | sdl.WINDOW_RESIZABLE | PLATFORM_WINDOW_FLAGS |sdl.WINDOW_ALLOW_HIGHDPI)
+		w, h, sdl.WINDOW_SHOWN|sdl.WINDOW_RESIZABLE|PLATFORM_WINDOW_FLAGS|sdl.WINDOW_ALLOW_HIGHDPI)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +93,6 @@ func NewPlatformSdl(title string, x, y, w, h int32) (*PlatformSdl, error) {
 		perfFreq:   sdl.GetPerformanceFrequency(),
 		wantToExit: false,
 	}, nil
-
 }
 
 func (sw *PlatformSdl) Now() float64 {
@@ -108,10 +112,8 @@ func (sw *PlatformSdl) FindGamepad() {
 
 // PumpEvents pumps events from SDL
 func (sw *PlatformSdl) PumpEvents() error {
-
 	// Keyboards inputs
 	for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
-
 		// Handle Fullscreen with F11
 		if event.GetType() == sdl.KEYDOWN && event.(*sdl.KeyboardEvent).Keysym.Scancode == sdl.SCANCODE_F11 {
 			Logger.Println("full screen")
@@ -257,7 +259,6 @@ func (sw *PlatformSdl) VideoInit() error {
 	}
 
 	return nil
-
 }
 
 func (sw *PlatformSdl) VideoCleanup() {
