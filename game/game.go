@@ -56,6 +56,25 @@ const (
 	NumGameScenes
 )
 
+func (g GameSceneE) String() string {
+	names := [...]string{
+		"GameSceneIntro",
+		"GameSceneTitle",
+		"GameSceneMainMenu",
+		"GameSceneHighscores",
+		"GameSceneRace",
+		"GameSceneNone",
+		"NumGameScenes",
+	}
+
+	if g < GameSceneIntro || g >= NumGameScenes {
+		return "Unknown"
+	}
+
+	return names[g]
+}
+
+
 type RaceClassE int
 
 const (
@@ -123,7 +142,6 @@ var Logger *log.Logger
 
 func init() {
 	// Create a logger that writes to standard error with a timestamp
-	Logger = log.New(os.Stderr, "wipeout|", log.Ldate|log.Ltime)
 }
 
 type GameDefinition struct {
@@ -209,8 +227,10 @@ type PilotPoints struct {
 	Points uint16
 }
 
-type Init func()
-type Update func()
+type (
+	Init   func()
+	Update func()
+)
 
 type GameScene interface {
 	Init() error
@@ -256,6 +276,8 @@ type Game struct {
 }
 
 func NewGame(render *engine.Render, platform *engine.PlatformSdl) (*Game, error) {
+	Logger = log.New(os.Stderr, "game   |", log.Ldate|log.Ltime)
+	Logger.Println("Init")
 	ui := NewUI(render)
 
 	return &Game{
@@ -284,7 +306,7 @@ func (g *Game) Init(startTime float64) error {
 	g.GameScenes = make(map[GameSceneE]GameScene)
 	g.GameScenes[GameSceneTitle] = NewTitle(startTime, g.render)
 
-	g.SetScene(GameSceneIntro)
+	g.SetScene(GameSceneTitle)
 
 	return nil
 }
@@ -292,6 +314,8 @@ func (g *Game) Init(startTime float64) error {
 func (g *Game) SetScene(scene GameSceneE) {
 	// TODO reset sfx
 	g.NextScene = scene
+
+	Logger.Println(g.NextScene)
 }
 
 type ResetCycleTime bool
@@ -318,9 +342,7 @@ func (g *Game) Update() ResetCycleTime {
 		g.CurrentScene = g.NextScene
 		g.NextScene = GameSceneNone
 		g.render.TexturesReset(uint16(g.GlobalTextureLen))
-		// TODO system.ResetCycleTime()
 		resetCycleTime = true
-
 
 		if g.CurrentScene != GameSceneNone {
 			g.GameScenes[g.CurrentScene].Init()
@@ -337,7 +359,7 @@ func (g *Game) Update() ResetCycleTime {
 	g.FrameTime = now - frameStartTime
 
 	if g.FrameTime > 0 {
-		g.FrameRate = g.FrameRate * 0.95 + 1.0/g.FrameTime * 0.05
+		g.FrameRate = g.FrameRate*0.95 + 1.0/g.FrameTime*0.05
 	}
 
 	return ResetCycleTime(resetCycleTime)
