@@ -9,50 +9,6 @@ import (
 	"time"
 )
 
-func createprogram() gl.Uint {
-	// VERTEX SHADER
-	vs := gl.CreateShader(gl.VERTEX_SHADER)
-	vs_source := gl.GLString(vertexShaderSource)
-	gl.ShaderSource(vs, 1, &vs_source, nil)
-	gl.CompileShader(vs)
-	var vs_status gl.Int
-	gl.GetShaderiv(vs, gl.COMPILE_STATUS, &vs_status)
-	fmt.Printf("Compiled Vertex Shader: %v\n", vs_status)
-
-	// FRAGMENT SHADER
-	fs := gl.CreateShader(gl.FRAGMENT_SHADER)
-	fs_source := gl.GLString(fragmentShaderSource)
-	gl.ShaderSource(fs, 1, &fs_source, nil)
-	gl.CompileShader(fs)
-	var fstatus gl.Int
-	gl.GetShaderiv(fs, gl.COMPILE_STATUS, &fstatus)
-	fmt.Printf("Compiled Fragment Shader: %v\n", fstatus)
-
-	// CREATE PROGRAM
-	program := gl.CreateProgram()
-	gl.AttachShader(program, vs)
-	gl.AttachShader(program, fs)
-	fragoutstring := gl.GLString("outColor")
-	defer gl.GLStringFree(fragoutstring)
-	gl.BindFragDataLocation(program, gl.Uint(0), fragoutstring)
-
-	gl.LinkProgram(program)
-	var linkstatus gl.Int
-	gl.GetProgramiv(program, gl.LINK_STATUS, &linkstatus)
-	fmt.Printf("Program Link: %v\n", linkstatus)
-
-	return program
-}
-
-var uniRoll float32 = 0.0
-var uniYaw float32 = 1.0
-var uniPitch float32 = 0.0
-var uniscale float32 = 0.3
-var yrot float32 = 20.0
-var zrot float32 = 0.0
-var xrot float32 = 0.0
-var UniScale gl.Int
-
 func main() {
 	var window *sdl.Window
 	var context sdl.GLContext
@@ -275,3 +231,46 @@ var triangle_colours = []gl.Float{
 	0.673, 0.211, 0.457,
 	0.820, 0.883, 0.371,
 	0.982, 0.099, 0.879}
+func createprogram() gl.Uint {
+	// VERTEX SHADER
+	vs := gl.CreateShader(gl.VERTEX_SHADER)
+	vs_source := gl.GLString(vertexShaderSource)
+	gl.ShaderSource(vs, 1, &vs_source, nil)
+	gl.CompileShader(vs)
+	var vs_status gl.Int
+	gl.GetShaderiv(vs, gl.COMPILE_STATUS, &vs_status)
+	fmt.Printf("Compiled Vertex Shader: %v\n", vs_status)
+
+	// FRAGMENT SHADER
+	fs := gl.CreateShader(gl.FRAGMENT_SHADER)
+	fs_source := gl.GLString(fragmentShaderSource)
+	gl.ShaderSource(fs, 1, &fs_source, nil)
+	gl.CompileShader(fs)
+	var fstatus gl.Int
+	gl.GetShaderiv(fs, gl.COMPILE_STATUS, &fstatus)
+	fmt.Printf("Compiled Fragment Shader: %v\n", fstatus)
+
+	// CREATE PROGRAM
+	program := gl.CreateProgram()
+	gl.AttachShader(program, vs)
+	gl.AttachShader(program, fs)
+	fragoutstring := gl.GLString("outColor")
+	defer gl.GLStringFree(fragoutstring)
+	gl.BindFragDataLocation(program, gl.Uint(0), fragoutstring)
+
+	gl.LinkProgram(program)
+	var linkstatus gl.Int
+	gl.GetProgramiv(program, gl.LINK_STATUS, &linkstatus)
+	fmt.Printf("Program Link: %v\n", linkstatus)
+
+	return program
+}
+
+var uniRoll float32 = 0.0
+var uniYaw float32 = 1.0
+var uniPitch float32 = 0.0
+var uniscale float32 = 0.3
+var yrot float32 = 20.0
+var zrot float32 = 0.0
+var xrot float32 = 0.0
+var UniScale gl.Int
