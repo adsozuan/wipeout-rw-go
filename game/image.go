@@ -225,6 +225,7 @@ func imageLoadCompressed(name string) (*cmpT, error) {
 		decompressedSize += engine.GetI32LE(compressedBytes, &p)
 	}
 
+
 	var cmp cmpT
 	cmp.Len = uint32(imageCount)
 
@@ -233,11 +234,13 @@ func imageLoadCompressed(name string) (*cmpT, error) {
 
 	p = 4
 	var offset int32 = 0
+	var end int32 = 0
 
 	// Iterate through the entries and store their pointers
 	for i := uint32(0); i < uint32(imageCount); i++ {
-		entries[i] = decompressedBytes[offset:]
-		offset += engine.GetI32LE(compressedBytes, &p)
+		end = engine.GetI32LE(compressedBytes, &p)
+		entries[i] = decompressedBytes[offset:offset+end]
+		offset += end
 	}
 
 	cmp.Entries = entries
