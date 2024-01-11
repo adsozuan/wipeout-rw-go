@@ -3,8 +3,11 @@ package engine
 import (
 	"fmt"
 	"math"
+	"unsafe"
 
 	gl "github.com/chsc/gogl/gl33"
+	"github.com/veandco/go-sdl2/img"
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 const (
@@ -686,10 +689,38 @@ func (r *Render) TexturesReset(len uint16) error {
 }
 
 func (r *Render) TexturesDump(path string) error {
+
+	// Get current displayed image on screen via OpenGL
+
+
+	// Get the image from the SDL surface
+
+
 	width := AtlasSize * AtlasGrid
 	height := AtlasSize * AtlasGrid
 	pixels := make([]RGBA, width*height)
 	gl.GetTexImage(gl.TEXTURE_2D, 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Pointer(&pixels[0]))
+
+	surface, err := sdl.CreateRGBSurfaceFrom(unsafe.Pointer(&pixels[0]), int32(width), int32(height), 32, int(width*4),
+        0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000)
+    if err != nil {
+        Logger.Fatalf("Failed to create SDL surface: %s\n", err)
+    }
+    defer surface.Free()
+
+	
+
+
+
+
+    // Flip the image vertically (OpenGL's origin is bottom-left, SDL's is top-left)
+    //flipSurface(surface)
+
+    // Save the surface to an image file
+    if err := img.SavePNG(surface, path); err != nil {
+        Logger.Fatalf("Failed to save screenshot: %s\n", err)
+    }
+
 
 	// surface, err := sdl.CreateRGBSurfaceFrom(pixels, int32(width), int32(height), 32, int32(width*4),
     //     0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000)

@@ -1,11 +1,9 @@
 package game
 
 import (
-	"encoding/binary"
 	"fmt"
 	"os"
 	"path/filepath"
-	"unsafe"
 
 	"github.com/adsozuan/wipeout-rw-go/engine"
 	"github.com/blacktop/lzss"
@@ -25,18 +23,18 @@ type Image struct {
 }
 
 type PsxTim struct {
-	Magic []byte
-	Type TimTypePalette
-	HeaderSize int32
-	PaletteX int16
-	PaletteY int16
+	Magic         []byte
+	Type          TimTypePalette
+	HeaderSize    int32
+	PaletteX      int16
+	PaletteY      int16
 	PaletteColors int16
-	Palettes int16
-	DataSize int32
-	SkipX int16
-	SkipY int16
+	Palettes      int16
+	DataSize      int32
+	SkipX         int16
+	SkipY         int16
 	EntriesPerRow int16
-	Rows int16
+	Rows          int16
 }
 
 type TextureList struct {
@@ -62,75 +60,81 @@ func ImageAlloc(width, height uint32) *Image {
 }
 
 func ImageLoadFromBytes(bytes []byte, transparent bool) *Image {
-	var p uint32 = 0
-	var tim PsxTim
-	var magic = make([]byte, 4)
-	binary.LittleEndian.PutUint32(magic, uint32(engine.GetI32LE(bytes, &p)))
+	p := uint32(0)
 
-	tim.Magic = magic // magic
-	tim.Type = TimTypePalette(engine.GetI32LE(bytes, &p))
+	_ = engine.GetU32LE(bytes, &p)
+	imgType := engine.GetU32LE(bytes, &p)
 	var palette []uint16
 
-	if tim.Type == TimTypePaletted4BPP || tim.Type == TimTypePaletted8BPP {
-		tim.HeaderSize = engine.GetI32LE(bytes, &p) // header size
-		tim.PaletteX = engine.GetI16LE(bytes, &p) // paletteX
-		tim.PaletteY = engine.GetI16LE(bytes, &p) // paletteY
-		tim.PaletteColors = engine.GetI16LE(bytes, &p)
-		tim.Palettes = engine.GetI16LE(bytes, &p) // palettes
-		palette = *(*[]uint16)(unsafe.Pointer(&bytes[p]))
-		p += uint32(tim.PaletteColors * 2)
-	}
+	if imgType == uint32(TimTypePaletted4BPP) || imgType == uint32(TimTypePaletted8BPP) {
+		_ = engine.GetU32LE(bytes, &p)
+		_ = engine.GetU16LE(bytes, &p)
+		_ = engine.GetU16LE(bytes, &p)
+		paletteColors := engine.GetU16LE(bytes, &p)
+		_ = engine.GetU16LE(bytes, &p)
 
-	tim.DataSize = engine.GetI32LE(bytes, &p) // data size
-
-	pixelsPer16Bit := 1
-	if tim.Type == TimTypePaletted8BPP {
-		pixelsPer16Bit = 2
-	} else if tim.Type == TimTypePaletted4BPP {
-		pixelsPer16Bit = 4
-	}
-
-	tim.SkipX = engine.GetI16LE(bytes, &p) // skipX
-	tim.SkipY = engine.GetI16LE(bytes, &p) // skipY
-	tim.EntriesPerRow = engine.GetI16LE(bytes, &p)
-	tim.Rows = engine.GetI16LE(bytes, &p)
-
-	width := int32(tim.EntriesPerRow * int16(pixelsPer16Bit))
-	height := int32(tim.Rows)
-	entries := int32(tim.EntriesPerRow * tim.Rows)
-
-	image := ImageAlloc(uint32(width), uint32(height))
-	pixelPos := int32(0)
-
-	if tim.Type == TimTypeTrueColor16BPP {
-		for i := int32(0); i < entries; i++ {
-			image.Pixels[pixelPos] = tim16BitToRGBA(uint16(engine.GetI16LE(bytes, &p)), transparent)
-			pixelPos++
-		}
-	} else if tim.Type == TimTypePaletted8BPP {
-		for i := int32(0); i < entries; i++ {
-			palettePos := int32(engine.GetI16LE(bytes, &p))
-			image.Pixels[pixelPos] = tim16BitToRGBA(palette[(palettePos>>0)&0xff], transparent)
-			pixelPos++
-			image.Pixels[pixelPos] = tim16BitToRGBA(palette[(palettePos>>8)&0xff], transparent)
-			pixelPos++
-		}
-	} else if tim.Type == TimTypePaletted4BPP {
-		for i := int32(0); i < entries; i++ {
-			palettePos := int32(engine.GetI16LE(bytes, &p))
-			image.Pixels[pixelPos] = tim16BitToRGBA(palette[(palettePos>>0)&0xf], transparent)
-			pixelPos++
-			image.Pixels[pixelPos] = tim16BitToRGBA(palette[(palettePos>>4)&0xf], transparent)
-			pixelPos++
-			image.Pixels[pixelPos] = tim16BitToRGBA(palette[(palettePos>>8)&0xf], transparent)
-			pixelPos++
-			image.Pixels[pixelPos] = tim16BitToRGBA(palette[(palettePos>>12)&0xf], transparent)
-			pixelPos++
+		palette = make([]uint16, paletteColors)
+		for i := uint16(0); i < paletteColors; i++ {
+			palette[i] = engine.GetU16LE(bytes, &p)
 		}
 	}
+
+	_ = engine.GetU32LE(bytes, &p)
+
+	pixelsPer16bit := 1
+	if imgType == uint32(TimTypePaletted8BPP) {
+		pixelsPer16bit = 2
+	} else if imgType == uint32(TimTypePaletted4BPP) {
+		pixelsPer16bit = 4
+	}
+
+	_ = engine.GetU16LE(bytes, &p)
+	_ = engine.GetU16LE(bytes, &p)
+	entriesPerRow := engine.GetU16LE(bytes, &p)
+	rows := engine.GetU16LE(bytes, &p)
+
+	width := int32(entriesPerRow) * int32(pixelsPer16bit)
+	height := int32(rows)
+	entries := int32(entriesPerRow) * int32(rows)
+
+	image := &Image{
+		Width:  uint32(width),
+		Height: uint32(height),
+		Pixels: make([]engine.RGBA, width*height),
+	}
+
+	pixelPos := 0
+	if imgType == uint32(TimTypeTrueColor16BPP) {
+		for i := int32(0); i < entries; i++ {
+			image.Pixels[pixelPos] = tim16BitToRGBA(engine.GetU16LE(bytes, &p), transparent)
+			pixelPos++
+		}
+	} else if imgType == uint32(TimTypePaletted8BPP) {
+		for i := int32(0); i < entries; i++ {
+			palettePos := engine.GetU16LE(bytes, &p)
+			image.Pixels[pixelPos] = tim16BitToRGBA(palette[(palettePos>>0)&0xFF], transparent)
+			pixelPos++
+			image.Pixels[pixelPos] = tim16BitToRGBA(palette[(palettePos>>8)&0xFF], transparent)
+			pixelPos++
+		}
+	} else if imgType == uint32(TimTypePaletted4BPP) {
+		for i := int32(0); i < entries; i++ {
+			palettePos := engine.GetU16LE(bytes, &p)
+			image.Pixels[pixelPos] = tim16BitToRGBA(palette[(palettePos>>0)&0xF], transparent)
+			pixelPos++
+			image.Pixels[pixelPos] = tim16BitToRGBA(palette[(palettePos>>4)&0xF], transparent)
+			pixelPos++
+			image.Pixels[pixelPos] = tim16BitToRGBA(palette[(palettePos>>8)&0xF], transparent)
+			pixelPos++
+			image.Pixels[pixelPos] = tim16BitToRGBA(palette[(palettePos>>12)&0xF], transparent)
+			pixelPos++
+		}
+	}
+
 
 	return image
 }
+
 
 func ImageGetTexture(name string) uint16 {
 	currentDir, err := os.Getwd()
@@ -177,18 +181,23 @@ func ImageGetCompressedTexture(name string, render *engine.Render) (TextureList,
 }
 
 // tim16BitToRGBA converts a 16-bit TIM pixel to RGBA
-func tim16BitToRGBA(value uint16, transparent bool) engine.RGBA {
-	r := byte((value >> 11) & 0x1F)
-	g := byte((value >> 5) & 0x3F)
-	b := byte(value & 0x1F)
+func tim16BitToRGBA(c uint16, transparentBit bool) engine.RGBA {
+	r := byte((c >> 0) & 0x1f) << 3
+	g := byte((c >> 5) & 0x1f) << 3
+	b := byte((c >> 10) & 0x1f) << 3
 
-	if transparent {
-		a := byte(0x1F)
-		return engine.RGBA{R: r, G: g, B: b, A: a}
+	var a byte
+	if c == 0 {
+		a = 0x00
+	} else if transparentBit && (c&0x7FFF) == 0 {
+		a = 0x00
+	} else {
+		a = 0xFF
 	}
 
-	return engine.RGBA{R: r, G: g, B: b, A: 0xFF}
+	return engine.RGBA{R: r, G: g, B: b, A: a}
 }
+
 
 func TextureFromList(tl TextureList, index int) int {
 	if index >= tl.len {
@@ -225,7 +234,6 @@ func imageLoadCompressed(name string) (*cmpT, error) {
 		decompressedSize += engine.GetI32LE(compressedBytes, &p)
 	}
 
-
 	var cmp cmpT
 	cmp.Len = uint32(imageCount)
 
@@ -239,7 +247,7 @@ func imageLoadCompressed(name string) (*cmpT, error) {
 	// Iterate through the entries and store their pointers
 	for i := uint32(0); i < uint32(imageCount); i++ {
 		end = engine.GetI32LE(compressedBytes, &p)
-		entries[i] = decompressedBytes[offset:offset+end]
+		entries[i] = decompressedBytes[offset : offset+end]
 		offset += end
 	}
 
