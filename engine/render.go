@@ -327,7 +327,7 @@ func (r *Render) FrameEnd(cycleTime float64) {
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
 	white := RGBA{128, 128, 128, 255}
-	r.trisLen++
+
 	trisBuffer[r.trisLen] = Tris{
 		Vertices: [3]Vertex{
 			Vertex{Pos: Vec3{0, gl.Float(r.screenSize.Y), 0}, UV: Vec2{0, 0}, Color: white},
@@ -343,7 +343,7 @@ func (r *Render) FrameEnd(cycleTime float64) {
 			Vertex{Pos: Vec3{0, gl.Float(r.screenSize.Y), 0}, UV: Vec2{0, 0}, Color: white},
 		},
 	}
-
+	r.trisLen++
 	r.Flush()
 
 }
@@ -359,7 +359,7 @@ func (r *Render) Flush() {
 	}
 
 	gl.BindBuffer(gl.ARRAY_BUFFER, r.vbo)
-	gl.BufferData(gl.ARRAY_BUFFER, gl.Sizeiptr(unsafe.Sizeof(trisBuffer[0]) * uintptr(r.trisLen)), gl.Pointer(&trisBuffer[0]), gl.DYNAMIC_DRAW)
+	gl.BufferData(gl.ARRAY_BUFFER, gl.Sizeiptr(unsafe.Sizeof(trisBuffer[0])*uintptr(r.trisLen)), gl.Pointer(&trisBuffer[0]), gl.DYNAMIC_DRAW)
 	gl.DrawArrays(gl.TRIANGLES, gl.Int(0), gl.Sizei(r.trisLen*3))
 	r.trisLen = 0
 }
@@ -471,8 +471,8 @@ func (r *Render) PushTris(tris Tris, textureIndex int) error {
 		tris.Vertices[i].UV.X += gl.Float(t.offset.X)
 		tris.Vertices[i].UV.Y += gl.Float(t.offset.Y)
 	}
-	r.trisLen++
 	trisBuffer[r.trisLen] = tris
+	r.trisLen++
 
 	return nil
 }
@@ -513,28 +513,46 @@ func (r *Render) Push2d(pos Vec2i, size Vec2i, color RGBA, textureIndex int) err
 	if err != nil {
 		return err
 	}
-	r.Push2dTitle(pos, Vec2i{0, 0}, ts, size, color, textureIndex)
+	r.Push2dTile(pos, Vec2i{0, 0}, ts, size, color, textureIndex)
 
 	return nil
 }
 
-func (r *Render) Push2dTitle(pos Vec2i, uvOffset Vec2i, uvSize Vec2i, size Vec2i, color RGBA, textureIndex int) error {
+func (r *Render) Push2dTile(pos Vec2i, uvOffset Vec2i, uvSize Vec2i, size Vec2i, color RGBA, textureIndex int) error {
 	if textureIndex >= r.texturesLen {
 		return fmt.Errorf("invalid texture index %d", textureIndex)
 	}
 
 	r.PushTris(Tris{
 		Vertices: [3]Vertex{
-			{Pos: Vec3{gl.Float(pos.X) + gl.Float(size.X), gl.Float(pos.Y) + gl.Float(size.Y), 0}, UV: Vec2{gl.Float(uvOffset.X), gl.Float(uvOffset.Y)}, Color: color},
-			{Pos: Vec3{gl.Float(pos.X + uvSize.X), gl.Float(pos.Y), 0}, UV: Vec2{gl.Float(uvOffset.X + uvSize.X), gl.Float(uvOffset.Y)}, Color: color},
-			{Pos: Vec3{gl.Float(pos.X), gl.Float(pos.Y), 0}, UV: Vec2{gl.Float(uvOffset.X), gl.Float(uvOffset.Y)}, Color: color},
+			{
+				Pos: Vec3{gl.Float(pos.X), gl.Float(pos.Y)+ gl.Float(size.Y), 0}, 
+			 	UV: Vec2{gl.Float(uvOffset.X), gl.Float(uvOffset.Y) + gl.Float(uvSize.Y)}, 
+				Color: color},
+			{
+				Pos: Vec3{gl.Float(pos.X + size.X), gl.Float(pos.Y), 0}, 
+				UV: Vec2{gl.Float(uvOffset.X + uvSize.X), gl.Float(uvOffset.Y)}, 
+				Color: color},
+			{
+				Pos: Vec3{gl.Float(pos.X), gl.Float(pos.Y), 0}, 
+				UV: Vec2{gl.Float(uvOffset.X), gl.Float(uvOffset.Y)}, 
+				Color: color},
 		}}, textureIndex)
 
 	r.PushTris(Tris{
 		Vertices: [3]Vertex{
-			{Pos: Vec3{gl.Float(pos.X) + gl.Float(size.X), gl.Float(pos.Y) + gl.Float(size.Y), 0}, UV: Vec2{gl.Float(uvOffset.X) + gl.Float(uvSize.X), gl.Float(uvOffset.Y) + gl.Float(uvSize.Y)}, Color: color},
-			{Pos: Vec3{gl.Float(pos.X + uvSize.X), gl.Float(pos.Y), 0}, UV: Vec2{gl.Float(uvOffset.X + uvSize.X), gl.Float(uvOffset.Y)}, Color: color},
-			{Pos: Vec3{gl.Float(pos.X), gl.Float(pos.Y), 0}, UV: Vec2{gl.Float(uvOffset.X), gl.Float(uvOffset.Y) + gl.Float(uvSize.Y)}, Color: color},
+			{
+				Pos: Vec3{gl.Float(pos.X) + gl.Float(size.X), gl.Float(pos.Y) + gl.Float(size.Y), 0}, 
+				UV: Vec2{gl.Float(uvOffset.X) + gl.Float(uvSize.X), gl.Float(uvOffset.Y) + gl.Float(uvSize.Y)}, 
+				Color: color},
+			{
+				Pos: Vec3{gl.Float(pos.X + uvSize.X), gl.Float(pos.Y), 0}, 
+				UV: Vec2{gl.Float(uvOffset.X + uvSize.X), gl.Float(uvOffset.Y)}, 
+				Color: color},
+			{
+				Pos: Vec3{gl.Float(pos.X), gl.Float(pos.Y + size.Y), 0}, 
+				UV: Vec2{gl.Float(uvOffset.X), gl.Float(uvOffset.Y) + gl.Float(uvSize.Y)}, 
+				Color: color},
 		}}, textureIndex)
 
 	return nil
@@ -712,9 +730,7 @@ func (r *Render) TexturesDump(path string) error {
 
 	// Get current displayed image on screen via OpenGL
 
-
 	// Get the image from the SDL surface
-
 
 	width := AtlasSize * AtlasGrid
 	height := AtlasSize * AtlasGrid
@@ -722,32 +738,26 @@ func (r *Render) TexturesDump(path string) error {
 	gl.GetTexImage(gl.TEXTURE_2D, 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Pointer(&pixels[0]))
 
 	surface, err := sdl.CreateRGBSurfaceFrom(unsafe.Pointer(&pixels[0]), int32(width), int32(height), 32, int(width*4),
-        0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000)
-    if err != nil {
-        Logger.Fatalf("Failed to create SDL surface: %s\n", err)
-    }
-    defer surface.Free()
+		0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000)
+	if err != nil {
+		Logger.Fatalf("Failed to create SDL surface: %s\n", err)
+	}
+	defer surface.Free()
 
-	
+	// Flip the image vertically (OpenGL's origin is bottom-left, SDL's is top-left)
+	//flipSurface(surface)
 
-
-
-
-    // Flip the image vertically (OpenGL's origin is bottom-left, SDL's is top-left)
-    //flipSurface(surface)
-
-    // Save the surface to an image file
-    if err := img.SavePNG(surface, path); err != nil {
-        Logger.Fatalf("Failed to save screenshot: %s\n", err)
-    }
-
+	// Save the surface to an image file
+	if err := img.SavePNG(surface, path); err != nil {
+		Logger.Fatalf("Failed to save screenshot: %s\n", err)
+	}
 
 	// surface, err := sdl.CreateRGBSurfaceFrom(pixels, int32(width), int32(height), 32, int32(width*4),
-    //     0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000)
-    // if err != nil {
-    //     Logger.Fatalf("Failed to create SDL surface: %s\n", err)
-    // }
-    // defer surface.Free()
+	//     0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000)
+	// if err != nil {
+	//     Logger.Fatalf("Failed to create SDL surface: %s\n", err)
+	// }
+	// defer surface.Free()
 
 	// TODO write into png
 	return nil

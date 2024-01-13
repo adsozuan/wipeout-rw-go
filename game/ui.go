@@ -202,7 +202,7 @@ func (ui *UI) DrawText(text string, pos engine.Vec2i, size UITextSize, color eng
 			glyph := &cs.Glyphs[ui.charToGlyphIndex(char)]
 			glyphOffset := engine.Vec2i{X: int32(glyph.Offset.X), Y: int32(glyph.Offset.Y)}
 			glyphSize := engine.Vec2i{X: int32(glyph.Width), Y: int32(cs.Height)}
-			ui.render.Push2dTitle(pos, glyphOffset, glyphSize, ui.Scaled(glyphSize), color, int(cs.Texture))
+			ui.render.Push2dTile(pos, glyphOffset, glyphSize, ui.Scaled(glyphSize), color, int(cs.Texture))
 			pos.X += int32(int(glyph.Width) * ui.scale)
 		} else {
 			pos.X += int32(8 * ui.scale)
