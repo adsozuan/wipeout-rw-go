@@ -231,16 +231,6 @@ func Vec3Reflect(incidence, normal Vec3, f gl.Float) Vec3 {
 	return Vec3Add(incidence, Vec3MulF(normal, Vec3Dot(normal, Vec3MulF(incidence, -1))*f))
 }
 
-// Clamp generic
-func Clamp[T Number](value, min, max T) T {
-	if value < min {
-		return (min)
-	}
-	if value > max {
-		return (max)
-	}
-	return (value)
-}
 
 type Number interface {
 	uint | byte | uint16 | uint32 | uint64 | int | int8 | int16 | int32 | int64 | float32 | float64 | gl.Float

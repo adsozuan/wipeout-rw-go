@@ -608,23 +608,31 @@ func (r *Render) TextureCreate(tw int, th int, pixels []RGBA) (int, error) {
 	if tw > 0 && th > 0 {
 		// Top border
 		for y := 0; y < AtlasBorder; y++ {
-			for x := 0; x < bw; x++ {
-				pb[x+y*bw+AtlasBorder] = pixels[0] // TODO something wrong here
-			}
+			copy(pb[(y*bw+AtlasBorder):(y*bw+AtlasBorder+tw)], pixels[:tw])
+			
 		}
 
 		// Bottom border
 		for y := 0; y < AtlasBorder; y++ {
-			for x := 0; x < bw; x++ {
-				pb[x+(bh-AtlasBorder+y)*bw] = pixels[(th-1)*tw]
-			}
+			copy(pb[((bh-AtlasBorder+y)*bw+AtlasBorder):((bh-AtlasBorder+y)*bw+AtlasBorder+tw)], pixels[(th-1)*tw:th*tw])
 		}
 
 		// Left border
 		for y := 0; y < bh; y++ {
 			for x := 0; x < AtlasBorder; x++ {
-				pb[x+y*bw] = pixels[int(Clamp(y-AtlasBorder, 0, th-1))*tw]
+				pb[y*bw+x] = pixels[Clamp(y-AtlasBorder, 0, th-1)*tw]
 			}
+		}
+		// Right Border
+		for y := 0; y < bh; y++ {
+			for x := 0; x < AtlasBorder; x++ {
+				pb[y*bw+bw-AtlasBorder+x] = pixels[Clamp(y-AtlasBorder, 0, th-1)*tw+tw-1]
+			}
+		}
+
+		// Texture
+		for y := 0; y < th; y++ {
+			copy(pb[(y+AtlasBorder)*bw+AtlasBorder:(y+AtlasBorder)*bw+AtlasBorder+tw], pixels[y*tw:(y+1)*tw])
 		}
 
 		// Right border
@@ -634,16 +642,7 @@ func (r *Render) TextureCreate(tw int, th int, pixels []RGBA) (int, error) {
 			}
 		}
 
-		// Texture
-		for y := 0; y < th; y++ {
-			for x := 0; x < tw; x++ {
-				pb[(x+AtlasBorder)+(y+AtlasBorder)*bw] = pixels[x+y*tw]
-			}
-		}
-
-		for y := 0; y < th; y++ {
-			pb[bw*(y+AtlasBorder)+AtlasBorder] = pixels[tw*y]
-		}
+		
 	}
 
 	x := gridX * AtlasGrid
@@ -653,11 +652,11 @@ func (r *Render) TextureCreate(tw int, th int, pixels []RGBA) (int, error) {
 
 	r.textureMipMapIsDirty = RenderUseMipMaps
 	textureIndex := r.texturesLen
-	r.texturesLen++
 	r.textures[textureIndex] = RenderTexture{
 		Vec2i{int32(x + AtlasBorder), int32(y + AtlasBorder)},
 		Vec2i{int32(tw), int32(th)},
 	}
+	r.texturesLen++
 
 	return textureIndex, nil
 }
