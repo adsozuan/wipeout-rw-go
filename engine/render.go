@@ -56,7 +56,7 @@ type RenderTexture struct {
 }
 
 var (
-	// For pinning the array in memory
+	// For pinning the array in memory otherwise can cause memory corruption
 	trisBuffer [RenderTrisBufferCapacity]Tris
 
 	RenderInstance *Render
@@ -200,6 +200,39 @@ func (r *Render) Size() Vec2i {
 	return r.backBufferSize
 }
 
+func (r *Render) Setup2dProjectionMat(size Vec2i) Mat4 {
+	var near gl.Float = -1
+	var far gl.Float = 1
+	var left gl.Float = 0
+	var right gl.Float = gl.Float(size.X)
+	var top gl.Float = 0
+	var bottom gl.Float = gl.Float(size.Y)
+
+	var lr gl.Float = 1.0 / (left - right)
+	var bt gl.Float = 1.0 / (bottom - top)
+	var nf gl.Float = 1.0 / (near - far)
+
+	return Mat4{
+		-2 * lr, 0, 0, 0,
+		0, -2 * bt, 0, 0,
+		0, 0, 2 * nf, 0,
+		lr * (left + right), bt * (top + bottom), nf * (far + near), 1,
+	}
+}
+
+func (r *Render) Setup3dProjectionMat(size Vec2i) Mat4 {
+	aspect := float32(size.X) / float32(size.Y)
+	fov := (73.75 / 180.0) * math.Pi
+	f := float32(1.0 / math.Tan(fov*0.5))
+	nf := float32(1.0 / (NearPlane - FarPlane))
+	return Mat4{
+		gl.Float(f / aspect), 0, 0, 0,
+		0, gl.Float(f), 0, 0,
+		0, 0, gl.Float((FarPlane + NearPlane) * nf), -1,
+		0, 0, gl.Float((2 * FarPlane * NearPlane) * nf), 0,
+	}
+}
+
 func (r *Render) SetResolution(res RenderResolution) {
 	r.renderResolution = res
 
@@ -216,14 +249,14 @@ func (r *Render) SetResolution(res RenderResolution) {
 		}
 	}
 
-	if r.backBuffer != 0 {
+	if r.backBuffer == 0 {
 		gl.GenTextures(1, &r.backBufferTexture)
 		gl.GenFramebuffers(1, &r.backBuffer)
 		gl.GenRenderbuffers(1, &r.backBufferDepthBuffer)
 	}
 
 	gl.BindTexture(gl.TEXTURE_2D, r.backBufferTexture)
-	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.Sizei(r.backBufferSize.X), gl.Sizei(r.backBufferSize.Y), 0, gl.RGBA, gl.UNSIGNED_BYTE, nil)
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.Sizei(r.backBufferSize.X), gl.Sizei(r.backBufferSize.Y), 0, gl.RGB, gl.UNSIGNED_BYTE, nil)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
@@ -254,21 +287,8 @@ func (r *Render) SetResolution(res RenderResolution) {
 	gl.Viewport(0, 0, gl.Sizei(r.backBufferSize.X), gl.Sizei(r.backBufferSize.Y))
 }
 
-func (r *Render) Setup3dProjectionMat(size Vec2i) Mat4 {
-	aspect := float32(size.X) / float32(size.Y)
-	fov := (73.75 / 180.0) * math.Pi
-	f := float32(1.0 / math.Tan(fov*0.5))
-	nf := float32(1.0 / (NearPlane - FarPlane))
-	return Mat4{
-		gl.Float(f / aspect), 0, 0, 0,
-		0, gl.Float(f), 0, 0,
-		0, 0, gl.Float((FarPlane + NearPlane) * nf), -1,
-		0, 0, gl.Float((2 * FarPlane * NearPlane) * nf), 0,
-	}
-}
-
 func (r *Render) SetPostEffect(postEffect RenderPostEffect) error {
-	if postEffect >= NumRenderPostEffects {
+	if postEffect > NumRenderPostEffects {
 		return fmt.Errorf("invalid post effect %d", postEffect)
 	}
 	r.programPostEffect = r.programPostEffects[postEffect]
@@ -339,7 +359,7 @@ func (r *Render) Flush() {
 	}
 
 	gl.BindBuffer(gl.ARRAY_BUFFER, r.vbo)
-	gl.BufferData(gl.ARRAY_BUFFER, gl.Sizeiptr(r.trisLen*24), gl.Pointer(&trisBuffer[0]), gl.DYNAMIC_DRAW)
+	gl.BufferData(gl.ARRAY_BUFFER, gl.Sizeiptr(unsafe.Sizeof(trisBuffer[0]) * uintptr(r.trisLen)), gl.Pointer(&trisBuffer[0]), gl.DYNAMIC_DRAW)
 	gl.DrawArrays(gl.TRIANGLES, gl.Int(0), gl.Sizei(r.trisLen*3))
 	r.trisLen = 0
 }
@@ -731,24 +751,4 @@ func (r *Render) TexturesDump(path string) error {
 
 	// TODO write into png
 	return nil
-}
-
-func (r *Render) Setup2dProjectionMat(size Vec2i) Mat4 {
-	var near gl.Float = -1
-	var far gl.Float = 1
-	var left gl.Float = 0
-	var right gl.Float = gl.Float(size.X)
-	var top gl.Float = 0
-	var bottom gl.Float = gl.Float(size.Y)
-
-	var lr gl.Float = 1.0 / (left - right)
-	var bt gl.Float = 1.0 / (bottom - top)
-	var nf gl.Float = 1.0 / (near - far)
-
-	return Mat4{
-		-2 * lr, 0, 0, 0,
-		0, -2 * bt, 0, 0,
-		0, 0, 2 * nf, 0,
-		lr * (left + right), bt * (top + bottom), nf * (far + near), 1,
-	}
 }
