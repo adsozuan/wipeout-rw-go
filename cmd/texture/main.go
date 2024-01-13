@@ -72,7 +72,7 @@ func main() {
 
 	// Load and create texture
 	// texture := loadTexture("C:/Users/ad/wd/wipeout-rw-go/cmd/texture/texture.png")
-	texture := loadTimTexture("C:/Users/ad/wd/wipeout-rw-go/cmd/wipeout/data/textures/wipeout1.tim")
+	texture := loadTimTexture("C:/Users/ad/wd/wipeout-rw-go/cmd/wipeout/data/textures/wiptitle.tim")
 
 	// Compile shaders and create shader program
 	shaderProgram := makeShaderProgram(vertexShaderSource, fragmentShaderSource)
@@ -81,10 +81,10 @@ func main() {
 	var VAO, VBO gl33.Uint
 	vertices := []float32{
 		// positions   // texture coords
-		0.5, 0.5, 0.0, 1.0, 1.0, // top right
-		0.5, -0.5, 0.0, 1.0, 0.0, // bottom right
-		-0.5, -0.5, 0.0, 0.0, 0.0, // bottom left
-		-0.5, 0.5, 0.0, 0.0, 1.0, // top left
+		0.5, 0.5, 0.0, 1.0, 0.0, // top right
+		0.5, -0.5, 0.0, 1.0, 1.0, // bottom right
+		-0.5, -0.5, 0.0, 0.0, 1.0, // bottom left
+		-0.5, 0.5, 0.0, 0.0, 0.0, // top left
 	}
 	indices := []uint32{
 		0, 1, 3, // first triangle
