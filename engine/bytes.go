@@ -1,16 +1,7 @@
 package engine
 
-import (
-	"os"
-)
 
-func Scale(v, inMin, inMax, outMin, outMax float64) float64 {
-	return outMin + (outMax-outMin)*((v-inMin)/(inMax-inMin))
-}
 
-func Lerp(a, b, t float64) float64 {
-	return a + (b-a)*t
-}
 func GetU8(bytes []byte, p *uint32) byte {
     v := bytes[*p]
     *p++
@@ -72,10 +63,3 @@ func GetI32LE(bytes []byte, p *uint32) int32 {
 	return int32(GetU32LE(bytes, p))
 }
 
-func LoadBinaryFile(filename string) ([]byte, error) {
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-	return data, nil
-}

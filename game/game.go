@@ -296,10 +296,10 @@ func (g *Game) Init(startTime float64) error {
 	// g.render.SetResolution()
 	// g.render.SetPostEffect()
 
-	err := g.ui.Load()
-	if err != nil {
-		return err
-	}
+	// err := g.ui.Load()
+	// if err != nil {
+	// 	return err
+	// }
 
 	g.GlobalTextureLen = g.render.TexturesLen()
 

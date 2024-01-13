@@ -256,3 +256,4 @@ func imageLoadCompressed(name string) (*cmpT, error) {
 	// Create and return the cmpT struct
 	return &cmp, nil
 }
+
