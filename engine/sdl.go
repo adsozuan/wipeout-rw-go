@@ -301,7 +301,7 @@ func (sw *PlatformSdl) GetScreenBuffer() *sdl.Rect {
 }
 
 func (sw *PlatformSdl) GetScreenSize() Vec2i {
-	ScreenSize.X, ScreenSize.Y = sw.window.GetSize()
+	ScreenSize.X, ScreenSize.Y = sw.window.GLGetDrawableSize()
 	return ScreenSize
 }
 
