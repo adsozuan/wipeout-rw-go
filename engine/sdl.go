@@ -10,7 +10,7 @@ import (
 var Logger *log.Logger
 
 const (
-	PLATFORM_WINDOW_FLAGS = sdl.WINDOW_OPENGL
+	PlatformWindowFlags = sdl.WINDOW_OPENGL
 )
 
 var (
@@ -22,32 +22,32 @@ var (
 )
 
 var GamepadMap = map[sdl.GameControllerButton]Button{
-	sdl.CONTROLLER_BUTTON_A:             INPUT_GAMEPAD_A,
-	sdl.CONTROLLER_BUTTON_B:             INPUT_GAMEPAD_B,
-	sdl.CONTROLLER_BUTTON_X:             INPUT_GAMEPAD_X,
-	sdl.CONTROLLER_BUTTON_Y:             INPUT_GAMEPAD_Y,
-	sdl.CONTROLLER_BUTTON_BACK:          INPUT_GAMEPAD_SELECT,
-	sdl.CONTROLLER_BUTTON_START:         INPUT_GAMEPAD_START,
-	sdl.CONTROLLER_BUTTON_GUIDE:         INPUT_GAMEPAD_HOME,
-	sdl.CONTROLLER_BUTTON_LEFTSTICK:     INPUT_GAMEPAD_L_STICK_PRESS,
-	sdl.CONTROLLER_BUTTON_RIGHTSTICK:    INPUT_GAMEPAD_R_STICK_PRESS,
-	sdl.CONTROLLER_BUTTON_LEFTSHOULDER:  INPUT_GAMEPAD_L_SHOULDER,
-	sdl.CONTROLLER_BUTTON_RIGHTSHOULDER: INPUT_GAMEPAD_R_SHOULDER,
-	sdl.CONTROLLER_BUTTON_DPAD_UP:       INPUT_GAMEPAD_DPAD_UP,
-	sdl.CONTROLLER_BUTTON_DPAD_DOWN:     INPUT_GAMEPAD_DPAD_DOWN,
-	sdl.CONTROLLER_BUTTON_DPAD_LEFT:     INPUT_GAMEPAD_DPAD_LEFT,
-	sdl.CONTROLLER_BUTTON_DPAD_RIGHT:    INPUT_GAMEPAD_DPAD_RIGHT,
-	sdl.CONTROLLER_BUTTON_MAX:           INPUT_INVALID,
+	sdl.CONTROLLER_BUTTON_A:             InputGamepadA,
+	sdl.CONTROLLER_BUTTON_B:             InputGamepadB,
+	sdl.CONTROLLER_BUTTON_X:             InputGamepadX,
+	sdl.CONTROLLER_BUTTON_Y:             InputGamepadY,
+	sdl.CONTROLLER_BUTTON_BACK:          InputGamepadSelect,
+	sdl.CONTROLLER_BUTTON_START:         InputGamepadStart,
+	sdl.CONTROLLER_BUTTON_GUIDE:         InputGamepadHome,
+	sdl.CONTROLLER_BUTTON_LEFTSTICK:     InputGamepadLStickPress,
+	sdl.CONTROLLER_BUTTON_RIGHTSTICK:    InputGamepadRStickPress,
+	sdl.CONTROLLER_BUTTON_LEFTSHOULDER:  InputGamepadLShoulder,
+	sdl.CONTROLLER_BUTTON_RIGHTSHOULDER: InputGamepadRShoulder,
+	sdl.CONTROLLER_BUTTON_DPAD_UP:       InputGamepadDpadUp,
+	sdl.CONTROLLER_BUTTON_DPAD_DOWN:     InputGamepadDpadDown,
+	sdl.CONTROLLER_BUTTON_DPAD_LEFT:     InputGamepadDpadLeft,
+	sdl.CONTROLLER_BUTTON_DPAD_RIGHT:    InputGamepadDpadRight,
+	sdl.CONTROLLER_BUTTON_MAX:           InputInvalid,
 }
 
 var GamepadAxisMap = map[sdl.GameControllerAxis]Button{
-	sdl.CONTROLLER_AXIS_LEFTX:        INPUT_GAMEPAD_L_STICK_LEFT,
-	sdl.CONTROLLER_AXIS_LEFTY:        INPUT_GAMEPAD_L_STICK_UP,
-	sdl.CONTROLLER_AXIS_RIGHTX:       INPUT_GAMEPAD_R_STICK_LEFT,
-	sdl.CONTROLLER_AXIS_RIGHTY:       INPUT_GAMEPAD_R_STICK_UP,
-	sdl.CONTROLLER_AXIS_TRIGGERLEFT:  INPUT_GAMEPAD_L_TRIGGER,
-	sdl.CONTROLLER_AXIS_TRIGGERRIGHT: INPUT_GAMEPAD_R_TRIGGER,
-	sdl.CONTROLLER_AXIS_MAX:          INPUT_INVALID,
+	sdl.CONTROLLER_AXIS_LEFTX:        InputGamepadLStickLeft,
+	sdl.CONTROLLER_AXIS_LEFTY:        InputGamepadLStickUp,
+	sdl.CONTROLLER_AXIS_RIGHTX:       InputGamepadRStickLeft,
+	sdl.CONTROLLER_AXIS_RIGHTY:       InputGamepadRStickUp,
+	sdl.CONTROLLER_AXIS_TRIGGERLEFT:  InputGamepadLTrigger,
+	sdl.CONTROLLER_AXIS_TRIGGERRIGHT: InputGamepadRTrigger,
+	sdl.CONTROLLER_AXIS_MAX:          InputInvalid,
 }
 
 // Exit() exits the game
@@ -72,13 +72,13 @@ type PlatformSdl struct {
 func NewPlatformSdl(title string, x, y, w, h int32) (*PlatformSdl, error) {
 	Logger = log.New(os.Stderr, "engine |", log.Ldate|log.Ltime)
 
-	sdl.GLSetAttribute(sdl.GL_CONTEXT_MAJOR_VERSION, 3)
-    sdl.GLSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 3)
-    sdl.GLSetAttribute(sdl.GL_CONTEXT_PROFILE_MASK, sdl.GL_CONTEXT_PROFILE_CORE)
+	// sdl.GLSetAttribute(sdl.GL_CONTEXT_MAJOR_VERSION, 3)
+	// sdl.GLSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 3)
+	// sdl.GLSetAttribute(sdl.GL_CONTEXT_PROFILE_MASK, sdl.GL_CONTEXT_PROFILE_CORE)
 
-	window, err := sdl.CreateWindow("Wipeout",
+	window, err := sdl.CreateWindow(title,
 		sdl.WINDOWPOS_CENTERED, sdl.WINDOWPOS_CENTERED,
-		w, h, sdl.WINDOW_SHOWN|sdl.WINDOW_RESIZABLE|PLATFORM_WINDOW_FLAGS|sdl.WINDOW_ALLOW_HIGHDPI)
+		w, h, sdl.WINDOW_SHOWN|sdl.WINDOW_RESIZABLE|PlatformWindowFlags|sdl.WINDOW_ALLOW_HIGHDPI)
 	if err != nil {
 		return nil, err
 	}
@@ -132,9 +132,9 @@ func (sw *PlatformSdl) PumpEvents() error {
 				state = 1
 			}
 			if code >= sdl.SCANCODE_LCTRL && code <= sdl.SCANCODE_RALT {
-				codeInternal := code - sdl.SCANCODE_LCTRL + sdl.Scancode(INPUT_KEY_LCTRL)
+				codeInternal := code - sdl.SCANCODE_LCTRL + sdl.Scancode(InputKeyLCtrl)
 				InputSetButtonState(Button(codeInternal), state)
-			} else if code > 0 && code < sdl.Scancode(INPUT_KEY_MAX) {
+			} else if code > 0 && code < sdl.Scancode(InputKeyMax) {
 				InputSetButtonState(Button(code), state)
 			}
 		} else if event.GetType() == sdl.TEXTINPUT {
@@ -151,7 +151,7 @@ func (sw *PlatformSdl) PumpEvents() error {
 			// Input Gamepad buttons
 		} else if event.GetType() == sdl.CONTROLLERBUTTONDOWN || event.GetType() == sdl.CONTROLLERBUTTONUP {
 			button := GamepadMap[sdl.GameControllerButton(event.(*sdl.ControllerButtonEvent).Button)]
-			if button != INPUT_INVALID {
+			if button != InputInvalid {
 				var state float32
 				if event.GetType() == sdl.CONTROLLERBUTTONDOWN {
 					state = 0
@@ -165,7 +165,7 @@ func (sw *PlatformSdl) PumpEvents() error {
 
 			if event.(*sdl.ControllerAxisEvent).Axis < sdl.CONTROLLER_AXIS_MAX {
 				code := GamepadAxisMap[sdl.GameControllerAxis(event.(*sdl.ControllerAxisEvent).Axis)]
-				if code == INPUT_GAMEPAD_L_TRIGGER || code == INPUT_GAMEPAD_R_TRIGGER {
+				if code == InputGamepadLTrigger || code == InputGamepadRTrigger {
 					InputSetButtonState(code, state)
 				} else if state > 0 {
 					InputSetButtonState(code, 0.0)
