@@ -17,7 +17,7 @@ const (
 	NumLaps        = 3
 	NumLives       = 3
 	QualifyingRank = 3
-	SaveDataMagic  = 0x64736f77
+	
 )
 
 type Action int
@@ -73,7 +73,6 @@ func (g GameSceneE) String() string {
 
 	return names[g]
 }
-
 
 type RaceClassE int
 
@@ -238,6 +237,7 @@ type GameScene interface {
 }
 
 type Game struct {
+	save 	  Save
 	FrameTime float64
 	FrameRate float64
 
@@ -292,9 +292,9 @@ func NewGame(render *engine.Render, platform *engine.PlatformSdl) (*Game, error)
 
 func (g *Game) Init(startTime float64) error {
 	// TODO uncomment when save is ready
-	// g.platform.SetFullscreen(false)
-	// g.render.SetResolution()
-	// g.render.SetPostEffect()
+	//g.platform.SetFullscreen(g.save.Fullscreen)
+	g.render.SetResolution(engine.RenderResolution(g.save.ScreenRes))
+	g.render.SetPostEffect(engine.RenderPostEffect(g.save.PostEffect))
 
 	// err := g.ui.Load()
 	// if err != nil {
@@ -304,7 +304,7 @@ func (g *Game) Init(startTime float64) error {
 	g.GlobalTextureLen = g.render.TexturesLen()
 
 	g.GameScenes = make(map[GameSceneE]GameScene)
-	g.GameScenes[GameSceneTitle] = NewTitle(startTime, g.render)
+	g.GameScenes[GameSceneTitle] = NewTitleScene(startTime, g.render)
 
 	g.SetScene(GameSceneTitle)
 
@@ -333,8 +333,9 @@ func (g *Game) Update() ResetCycleTime {
 		scale = sh / 240
 	}
 	scale = max(1, scale)
-
-	// TODO save scale
+	if g.save.UiScale != 0 && g.save.UiScale < byte(scale) {
+		scale = int(g.save.UiScale)
+	}
 
 	g.ui.SetScale(scale)
 
@@ -351,6 +352,13 @@ func (g *Game) Update() ResetCycleTime {
 
 	if g.CurrentScene != GameSceneNone {
 		g.GameScenes[g.CurrentScene].Update()
+	}
+
+
+	fullscreen := g.platform.IsFullScreen()
+	if fullscreen != g.save.Fullscreen {
+		g.save.Fullscreen = fullscreen
+		g.save.IsDirty = true
 	}
 
 	// TODO handle save

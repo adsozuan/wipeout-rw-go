@@ -127,12 +127,12 @@ func (r *Render) Init(screenSize Vec2i) {
 
 	gl.GenTextures(1, &r.atlasTexture)
 	gl.BindTexture(gl.TEXTURE_2D, r.atlasTexture)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 	if RenderUseMipMaps {
 		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR)
 	} else {
 		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
 	}
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
 
@@ -528,7 +528,7 @@ func (r *Render) Push2dTile(pos Vec2i, uvOffset Vec2i, uvSize Vec2i, size Vec2i,
 			{
 				Pos: Vec3{gl.Float(pos.X), gl.Float(pos.Y)+ gl.Float(size.Y), 0}, 
 			 	UV: Vec2{gl.Float(uvOffset.X), gl.Float(uvOffset.Y) + gl.Float(uvSize.Y)}, 
-				Color: color},
+				Color: color },
 			{
 				Pos: Vec3{gl.Float(pos.X + size.X), gl.Float(pos.Y), 0}, 
 				UV: Vec2{gl.Float(uvOffset.X + uvSize.X), gl.Float(uvOffset.Y)}, 
@@ -652,11 +652,11 @@ func (r *Render) TextureCreate(tw int, th int, pixels []RGBA) (int, error) {
 
 	r.textureMipMapIsDirty = RenderUseMipMaps
 	textureIndex := r.texturesLen
+	r.texturesLen++
 	r.textures[textureIndex] = RenderTexture{
 		Vec2i{int32(x + AtlasBorder), int32(y + AtlasBorder)},
 		Vec2i{int32(tw), int32(th)},
 	}
-	r.texturesLen++
 
 	return textureIndex, nil
 }

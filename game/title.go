@@ -10,7 +10,7 @@ type TitleScene struct {
 	ui              *UI
 }
 
-func NewTitle(startTime float64, render *engine.Render) *TitleScene {
+func NewTitleScene(startTime float64, render *engine.Render) *TitleScene {
 
 	return &TitleScene{
 		startTime:       startTime,
@@ -19,7 +19,6 @@ func NewTitle(startTime float64, render *engine.Render) *TitleScene {
 		ui:              NewUI(render),
 	}
 }
-
 
 func (t *TitleScene) Init() error {
 	texture := ImageGetTexture("data/textures/wiptitle.tim")
@@ -30,12 +29,11 @@ func (t *TitleScene) Init() error {
 
 func (t *TitleScene) Update() error {
 	t.render.SetView2d()
-	err := t.render.Push2d(engine.NewVec2i(0, 0), t.render.Size(), engine.NewRGBA(128, 128, 128, 25), int(t.titleImage))
+	err := t.render.Push2d(engine.NewVec2i(0, 0), t.render.Size(), engine.NewRGBA(128, 128, 128, 255), int(t.titleImage))
 	if err != nil {
 		return err
 	}
 	t.ui.DrawText("PRESS ENTER", t.ui.ScaledPos(UIPosBottom|UIPosCenter, engine.NewVec2i(0, -40)), UITextSize16, UIColorDefault)
-	// t.ui.DrawImage(engine.NewVec2i(0, 0), int(t.titleImage))
 
 	return nil
 }

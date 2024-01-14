@@ -11,8 +11,8 @@ import (
 
 const (
 	WindowName   = "Wipeout"
-	WindowWidth  = 320
-	WindowHeight = 240
+	WindowWidth  = 1280
+	WindowHeight = 720
 )
 
 var Logger *log.Logger
